@@ -1,0 +1,41 @@
+# dependencias
+node_modules/
+.pnp
+.pnp.js
+
+# next
+.next/
+out/
+build/
+next-env.d.ts
+
+# base de datos local
+*.db
+*.db-journal
+*.sqlite
+*.sqlite3
+prisma/dev.db*
+prisma/*.db*
+
+# entorno — NUNCA subir credenciales de Google
+.env
+.env.local
+.env.production
+.env*.local
+
+# logs y temporales
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+.DS_Store
+*.pem
+uploads/
+tmp/
+
+# editores
+.vscode/
+.idea/
+
+# typescript
+*.tsbuildinfo

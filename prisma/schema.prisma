@@ -1,0 +1,312 @@
+// Eture Mailer — esquema de datos
+//
+// Provider por defecto: SQLite (cero configuración, ideal para self-hosting).
+// Para migrar a PostgreSQL basta con cambiar `provider = "postgresql"` aquí y
+// apuntar DATABASE_URL a tu instancia: no se usan enums nativos ni arrays, así
+// que el esquema es compatible con ambos motores sin más cambios.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// ---------------------------------------------------------------------------
+// Usuarios de Google Workspace
+// ---------------------------------------------------------------------------
+
+model User {
+  id        String  @id @default(cuid())
+  googleId  String  @unique
+  email     String  @unique
+  name      String?
+  imageUrl  String?
+
+  // Rol dentro de la plataforma: OWNER | ADMIN | MEMBER (ver lib/constants.ts)
+  role      String  @default("MEMBER")
+  isActive  Boolean @default(true)
+
+  // Credenciales OAuth de Gmail. Los tokens se guardan cifrados (AES-256-GCM),
+  // ver lib/crypto.ts. Nunca se exponen al cliente.
+  accessToken     String?
+  refreshToken    String?
+  tokenExpiresAt  DateTime?
+  grantedScopes   String?
+
+  // Preferencias de envío
+  fromName        String?
+  replyTo         String?
+  signatureHtml   String?
+  dailyQuota      Int     @default(1500) // límite de Google Workspace por día
+  sendRatePerHour Int     @default(300)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  lastLoginAt DateTime?
+
+  campaigns  Campaign[]
+  imports    ImportJob[]
+  sendLogs   SendLog[]
+
+  @@index([email])
+}
+
+// ---------------------------------------------------------------------------
+// Contactos y listas
+// ---------------------------------------------------------------------------
+
+model Contact {
+  id        String  @id @default(cuid())
+  email     String  @unique
+  firstName String?
+  lastName  String?
+  company   String?
+  jobTitle  String?
+  phone     String?
+  country   String?
+  language  String?
+
+  // Campos personalizados libres importados del CSV/Excel, como objeto JSON
+  // serializado: { "equipo": "Valorant", "tier": "Gold" }
+  customFields String @default("{}")
+
+  // SUBSCRIBED | UNSUBSCRIBED | BOUNCED | COMPLAINED (ver lib/constants.ts)
+  status    String  @default("SUBSCRIBED")
+  source    String  @default("manual") // manual | import | api
+
+  unsubscribeToken String @unique @default(cuid())
+
+  notes      String?
+  lastSentAt DateTime?
+  bouncedAt  DateTime?
+  unsubscribedAt DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  memberships ListMembership[]
+  recipients  Recipient[]
+  events      Event[]
+
+  @@index([status])
+  @@index([createdAt])
+}
+
+model ContactList {
+  id          String  @id @default(cuid())
+  name        String  @unique
+  description String?
+  color       String  @default("#22d3ee")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  memberships   ListMembership[]
+  campaignLists CampaignList[]
+}
+
+model ListMembership {
+  listId    String
+  contactId String
+  addedAt   DateTime @default(now())
+
+  list    ContactList @relation(fields: [listId], references: [id], onDelete: Cascade)
+  contact Contact     @relation(fields: [contactId], references: [id], onDelete: Cascade)
+
+  @@id([listId, contactId])
+  @@index([contactId])
+}
+
+// ---------------------------------------------------------------------------
+// Plantillas
+// ---------------------------------------------------------------------------
+
+model Template {
+  id          String  @id @default(cuid())
+  name        String
+  subject     String  @default("")
+  html        String  @default("")
+  previewText String?
+  category    String  @default("General")
+  isArchived  Boolean @default(false)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  campaigns Campaign[]
+}
+
+// ---------------------------------------------------------------------------
+// Campañas
+// ---------------------------------------------------------------------------
+
+model Campaign {
+  id          String  @id @default(cuid())
+  name        String
+  subject     String  @default("")
+  html        String  @default("")
+  previewText String?
+
+  // DRAFT | SCHEDULED | SENDING | PAUSED | SENT | FAILED
+  status String @default("DRAFT")
+
+  senderId String
+  sender   User   @relation(fields: [senderId], references: [id])
+
+  templateId String?
+  template   Template? @relation(fields: [templateId], references: [id], onDelete: SetNull)
+
+  fromName String?
+  replyTo  String?
+
+  trackOpens  Boolean @default(true)
+  trackClicks Boolean @default(true)
+  includeUnsubscribe Boolean @default(true)
+
+  scheduledAt     DateTime?
+  sendRatePerHour Int       @default(300)
+
+  // Contadores desnormalizados para pintar el dashboard sin agregaciones caras
+  totalRecipients Int @default(0)
+  sentCount       Int @default(0)
+  failedCount     Int @default(0)
+  openCount       Int @default(0) // aperturas únicas
+  clickCount      Int @default(0) // clics únicos
+  unsubCount      Int @default(0)
+  bounceCount     Int @default(0)
+
+  startedAt   DateTime?
+  completedAt DateTime?
+  lastError   String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  lists      CampaignList[]
+  recipients Recipient[]
+  events     Event[]
+  sendLogs   SendLog[]
+
+  @@index([status])
+  @@index([scheduledAt])
+}
+
+model CampaignList {
+  campaignId String
+  listId     String
+
+  campaign Campaign    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  list     ContactList @relation(fields: [listId], references: [id], onDelete: Cascade)
+
+  @@id([campaignId, listId])
+}
+
+/// Una fila por (campaña, contacto). Es a la vez la cola de envío y el registro
+/// de resultados/seguimiento de ese envío concreto.
+model Recipient {
+  id         String @id @default(cuid())
+  campaignId String
+  contactId  String
+
+  // PENDING | SENDING | SENT | FAILED | SKIPPED
+  status   String @default("PENDING")
+  attempts Int    @default(0)
+  error    String?
+
+  // Identificador opaco que viaja en el píxel y en los enlaces rastreados
+  trackingId String @unique @default(cuid())
+
+  gmailMessageId String?
+  gmailThreadId  String?
+
+  sentAt         DateTime?
+  firstOpenedAt  DateTime?
+  lastOpenedAt   DateTime?
+  openCount      Int       @default(0)
+  firstClickedAt DateTime?
+  clickCount     Int       @default(0)
+  unsubscribedAt DateTime?
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  contact  Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  events   Event[]
+
+  @@unique([campaignId, contactId])
+  @@index([campaignId, status])
+  @@index([contactId])
+}
+
+// ---------------------------------------------------------------------------
+// Seguimiento y auditoría
+// ---------------------------------------------------------------------------
+
+model Event {
+  id String @id @default(cuid())
+
+  // SENT | OPEN | CLICK | UNSUBSCRIBE | BOUNCE | FAILED
+  type String
+
+  campaignId  String?
+  contactId   String?
+  recipientId String?
+
+  url       String?
+  userAgent String?
+  ipHash    String?
+  meta      String?
+
+  createdAt DateTime @default(now())
+
+  campaign  Campaign?  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  contact   Contact?   @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  recipient Recipient? @relation(fields: [recipientId], references: [id], onDelete: Cascade)
+
+  @@index([type, createdAt])
+  @@index([campaignId, type])
+}
+
+/// Registro por usuario y día para no rebasar la cuota diaria de Google Workspace.
+model SendLog {
+  id     String @id @default(cuid())
+  userId String
+  day    String // YYYY-MM-DD en la zona horaria configurada
+
+  count      Int      @default(0)
+  campaignId String?
+
+  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  campaign Campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+
+  @@unique([userId, day, campaignId])
+  @@index([userId, day])
+}
+
+model ImportJob {
+  id       String @id @default(cuid())
+  filename String
+  userId   String?
+
+  totalRows Int @default(0)
+  imported  Int @default(0)
+  updated   Int @default(0)
+  skipped   Int @default(0)
+  invalid   Int @default(0)
+
+  // PENDING | DONE | FAILED
+  status  String  @default("DONE")
+  errors  String  @default("[]")
+  listIds String  @default("[]")
+
+  createdAt DateTime @default(now())
+
+  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
+}
+
+model Setting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt
+}

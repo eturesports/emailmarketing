@@ -1,0 +1,232 @@
+# Eture Mailer
+
+Plataforma de email marketing de **Eture Esports**, al estilo de Mailmeteor, que
+envía las campañas **a través de Gmail (Google Workspace)** en lugar de un
+proveedor externo.
+
+Enviar desde Gmail significa que los correos salen firmados con el DKIM de
+vuestro dominio, quedan en la carpeta «Enviados» del usuario y heredan la
+reputación de entrega de la cuenta. A cambio, se está sujeto a la cuota diaria
+de Google (2.000 correos/día en Workspace, ~500 en una cuenta gratuita), que la
+plataforma controla y respeta automáticamente.
+
+---
+
+## Qué incluye
+
+**Contactos**
+- Importación desde **CSV, TSV y Excel (.xlsx/.xls)** con reconocimiento
+  automático de columnas: `email`, `correo`, `Correo electrónico`, `nombre`,
+  `apellidos`, `empresa`… y detección del separador (`,`, `;` o tabulador), tal
+  y como exporta Excel en español.
+- Las columnas que no encajan con un campo conocido se guardan como **campos
+  personalizados** y quedan disponibles en los correos como `{{equipo}}`.
+- Deduplicación por email (dentro del propio fichero y contra la base), opción
+  de actualizar los existentes y aviso fila a fila de lo descartado.
+- Fichas con historial de envíos, aperturas y clics; búsqueda, filtros,
+  acciones en lote y exportación a CSV compatible con Excel.
+
+**Listas**
+- Agrupación de contactos por segmento (prensa, patrocinadores, comunidad…).
+- Un contacto que esté en varias listas de una campaña recibe **un solo correo**.
+
+**Campañas**
+- Editor de HTML con previsualización aislada e inserción de etiquetas de
+  combinación con un clic.
+- Etiquetas tipo `{{firstName}}` y con valor por defecto: `{{firstName | equipo}}`.
+- Envío de prueba, programación, pausa/reanudación y reintento de fallidos.
+- Ritmo de envío configurable (60–1.200 correos/hora) para cuidar la
+  entregabilidad.
+- Seguimiento de **aperturas** (píxel) y **clics** (redirector firmado), enlace
+  de baja obligatorio y cabecera `List-Unsubscribe` de un clic (RFC 8058), que
+  es lo que hace que Gmail muestre su propio botón «Cancelar suscripción».
+
+**Plantillas**
+- Diseños reutilizables con miniatura. Al crear una campaña se **copia** el
+  contenido, así que editar la plantilla después no altera lo ya enviado.
+
+**Equipo y control**
+- Acceso restringido por dominio de Google Workspace.
+- Roles (propietario / administrador / miembro) y activación de cuentas.
+- Cuota diaria por usuario y contador en tiempo real.
+
+---
+
+## Puesta en marcha
+
+### 1. Requisitos
+
+- Node.js 20.9 o superior.
+- Una cuenta de Google Workspace del dominio de Eture.
+
+### 2. Instalar
+
+```bash
+npm install
+cp .env.example .env
+```
+
+> El paquete `xlsx` se instala desde el CDN oficial de SheetJS
+> (`cdn.sheetjs.com`), que es la vía recomendada por sus autores: la copia
+> publicada en npm está sin mantenimiento y arrastra vulnerabilidades conocidas.
+
+### 3. Credenciales de Google
+
+1. Entra en [Google Cloud Console](https://console.cloud.google.com/) y crea un
+   proyecto.
+2. **APIs y servicios → Biblioteca** → habilita **Gmail API**.
+3. **Pantalla de consentimiento OAuth** → tipo **Interno** (así sólo entra gente
+   del dominio y no hace falta pasar la verificación de Google).
+4. **Credenciales → Crear credenciales → ID de cliente de OAuth → Aplicación web**.
+   - URI de redireccionamiento autorizado: `http://localhost:3000/api/auth/callback`
+     en desarrollo, y `https://TU-DOMINIO/api/auth/callback` en producción.
+5. Copia el ID y el secreto de cliente al fichero `.env`.
+
+### 4. Completar el `.env`
+
+```bash
+# Genera dos claves distintas
+openssl rand -base64 32   # → SESSION_SECRET
+openssl rand -base64 32   # → ENCRYPTION_KEY
+openssl rand -hex 24      # → CRON_SECRET
+```
+
+Ajusta también `ALLOWED_DOMAINS` (por defecto `eture.es`): sólo las cuentas de
+esos dominios podrán entrar.
+
+### 5. Base de datos y arranque
+
+```bash
+npm run db:push    # crea el esquema (SQLite en prisma/dev.db)
+npm run db:seed    # listas y plantillas de ejemplo
+npm run dev
+```
+
+Abre <http://localhost:3000> y entra con tu cuenta de Google. **El primer
+usuario que entre se convierte en propietario.**
+
+### 6. El worker de envío
+
+Los correos no se mandan dentro de la petición HTTP que pulsa «Enviar»: se
+encolan y un worker los va sacando por lotes. En desarrollo:
+
+```bash
+npm run worker            # bucle continuo, una pasada por minuto
+npm run worker -- --once  # una sola pasada (para cron del sistema)
+```
+
+En producción hay dos opciones equivalentes:
+
+- **Vercel** — el fichero `vercel.json` ya programa `/api/cron` cada 5 minutos.
+- **Servidor propio** — un cron que llame al endpoint:
+
+  ```cron
+  */5 * * * * curl -fsS -H "Authorization: Bearer $CRON_SECRET" https://TU-DOMINIO/api/cron
+  ```
+
+Sin worker las campañas se quedan a medias: el primer lote sale al pulsar
+«Enviar» y el resto espera indefinidamente.
+
+---
+
+## Despliegue
+
+`APP_URL` **debe ser una URL pública con HTTPS**. Es la base de los enlaces de
+seguimiento y de baja que viajan dentro de cada correo: si apunta a `localhost`,
+ni el píxel de apertura ni el enlace de baja funcionarán en el buzón del
+destinatario.
+
+### PostgreSQL en lugar de SQLite
+
+SQLite es suficiente para el uso de un equipo, pero si despliegas en Vercel
+necesitas una base gestionada (el sistema de ficheros es efímero). El cambio son
+dos líneas:
+
+```prisma
+// prisma/schema.prisma
+datasource db {
+  provider = "postgresql"   // antes: "sqlite"
+  url      = env("DATABASE_URL")
+}
+```
+
+```bash
+DATABASE_URL="postgresql://usuario:clave@host:5432/eture_mailer"
+npm run db:push
+```
+
+El esquema no usa enums nativos ni arrays, así que es compatible con ambos
+motores sin más cambios.
+
+---
+
+## Cómo está montado
+
+```
+src/
+  app/
+    (panel)/              Panel: resumen, campañas, contactos, listas, plantillas…
+    api/                  Route handlers (auth, contactos, campañas, cron, tracking)
+    baja/[token]/         Página pública de cancelación de suscripción
+    login/
+  components/             Interfaz (servidor + cliente)
+  lib/
+    api.ts                Errores y respuestas de los route handlers
+    auth.ts               Sesión y permisos
+    constants.ts          Estados, roles y alias de importación
+    crypto.ts             Cifrado AES-256-GCM de los tokens de Gmail
+    db.ts                 Cliente Prisma
+    gmail.ts              Construcción del MIME y envío
+    google.ts             OAuth y refresco de tokens
+    import.ts             Lectura de CSV/Excel e importación
+    merge.ts              Motor de etiquetas de combinación
+    sender.ts             Cola de envío, cuotas y ritmo
+    tracking.ts           Píxel, redirector de clics y pie de baja
+    unsubscribe.ts        Bajas
+prisma/                   Esquema y semilla
+scripts/worker.ts         Worker de envío para servidor propio
+```
+
+### Decisiones que conviene conocer
+
+- **Cola persistente.** Cada par (campaña, contacto) es una fila `Recipient` que
+  es a la vez la cola y el registro del resultado. Un envío de 5.000 correos no
+  depende de que una petición HTTP siga viva media hora, sobrevive a un
+  reinicio y se puede pausar y reanudar.
+- **Tokens cifrados.** El *refresh token* de Gmail permite enviar en nombre del
+  usuario de forma indefinida, así que se guarda cifrado con `ENCRYPTION_KEY`:
+  una copia del fichero de base de datos, por sí sola, no sirve de nada.
+- **Enlaces de clic firmados.** El redirector `/api/track/c/...` valida un HMAC
+  del destino antes de redirigir. Sin esa firma sería un redirector abierto,
+  perfecto para camuflar phishing detrás de vuestro dominio.
+- **Escapado del contenido.** Los valores de los contactos se escapan al
+  insertarse en el HTML del correo, de modo que un contacto cuyo nombre sea
+  `<script>` no puede inyectar marcado en el correo de otro.
+- **Cierre de sesión por POST.** Como enlace GET, el *prefetch* del navegador lo
+  visitaría al pasar el ratón por encima y cerraría la sesión sin que nadie
+  pulse nada.
+- **Cuota diaria por usuario y día**, en la zona horaria configurada, para no
+  chocar con el límite de Google a mitad de campaña.
+
+---
+
+## Comandos
+
+| Comando | Para qué |
+| --- | --- |
+| `npm run dev` | Servidor de desarrollo |
+| `npm run build` / `npm start` | Compilar y servir en producción |
+| `npm run typecheck` | Comprobación de tipos |
+| `npm run db:push` | Aplicar el esquema a la base de datos |
+| `npm run db:studio` | Explorador visual de la base de datos |
+| `npm run db:seed` | Listas y plantillas de ejemplo |
+| `npm run worker` | Procesar la cola de envío |
+
+---
+
+## Aviso legal
+
+Envía únicamente a contactos que hayan dado su consentimiento. Todas las
+campañas incluyen enlace de baja y cabecera `List-Unsubscribe`, que es lo que
+exigen el RGPD y la LSSI, pero la licitud de la base de datos es responsabilidad
+de quien la importa.
