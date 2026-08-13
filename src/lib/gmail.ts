@@ -8,7 +8,8 @@ import type { OAuth2Client } from "google-auth-library";
  * Enviar por Gmail (en vez de por SMTP propio o un proveedor tipo SendGrid)
  * significa que el correo sale de la infraestructura de Google Workspace: se
  * firma con el DKIM del dominio, queda en "Enviados" del usuario y hereda su
- * reputación de entrega. A cambio se está sujeto a la cuota diaria de la cuenta.
+ * reputación de entrega. A cambio se está sujeto al límite por cuenta de Google
+ * sobre una ventana móvil de 24 h (ver lib/quota.ts y lib/transport.ts).
  */
 
 export type EmailAttachment = {

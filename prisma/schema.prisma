@@ -19,37 +19,54 @@ datasource db {
 // ---------------------------------------------------------------------------
 
 model User {
-  id        String  @id @default(cuid())
-  googleId  String  @unique
-  email     String  @unique
-  name      String?
-  imageUrl  String?
+  id       String  @id @default(cuid())
+  googleId String  @unique
+  email    String  @unique
+  name     String?
+  imageUrl String?
 
   // Rol dentro de la plataforma: OWNER | ADMIN | MEMBER (ver lib/constants.ts)
-  role      String  @default("MEMBER")
-  isActive  Boolean @default(true)
+  role     String  @default("MEMBER")
+  isActive Boolean @default(true)
 
   // Credenciales OAuth de Gmail. Los tokens se guardan cifrados (AES-256-GCM),
   // ver lib/crypto.ts. Nunca se exponen al cliente.
-  accessToken     String?
-  refreshToken    String?
-  tokenExpiresAt  DateTime?
-  grantedScopes   String?
+  accessToken    String?
+  refreshToken   String?
+  tokenExpiresAt DateTime?
+  grantedScopes  String?
 
   // Preferencias de envío
-  fromName        String?
-  replyTo         String?
-  signatureHtml   String?
-  dailyQuota      Int     @default(1500) // límite de Google Workspace por día
-  sendRatePerHour Int     @default(300)
+  fromName      String?
+  replyTo       String?
+  signatureHtml String?
 
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  /// Vía de envío: GMAIL_API (2.000/24 h) o SMTP_RELAY (10.000/24 h).
+  /// Ver lib/transport.ts y TRANSPORT_LIMITS en lib/constants.ts.
+  transport String @default("GMAIL_API")
+
+  /// Credenciales del relay SMTP de Workspace. La contraseña es una
+  /// "contraseña de aplicación" de Google y se guarda cifrada.
+  smtpUser     String?
+  smtpPassword String?
+
+  /// Si participa en el grupo de remitentes que se reparte los envíos.
+  canSend Boolean @default(true)
+
+  /// Tope propio, por debajo del límite de Google, para dejar margen al correo
+  /// del día a día de la cuenta. Se aplica sobre una ventana móvil de 24 h.
+  dailyQuota      Int @default(1500)
+  sendRatePerHour Int @default(300)
+
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
   lastLoginAt DateTime?
 
-  campaigns  Campaign[]
-  imports    ImportJob[]
-  sendLogs   SendLog[]
+  campaigns      Campaign[]
+  imports        ImportJob[]
+  sendLogs       SendLog[]
+  campaignSlots  CampaignSender[]
+  sentRecipients Recipient[]      @relation("RecipientSender")
 
   @@index([email])
 }
@@ -74,14 +91,14 @@ model Contact {
   customFields String @default("{}")
 
   // SUBSCRIBED | UNSUBSCRIBED | BOUNCED | COMPLAINED (ver lib/constants.ts)
-  status    String  @default("SUBSCRIBED")
-  source    String  @default("manual") // manual | import | api
+  status String @default("SUBSCRIBED")
+  source String @default("manual") // manual | import | api
 
   unsubscribeToken String @unique @default(cuid())
 
-  notes      String?
-  lastSentAt DateTime?
-  bouncedAt  DateTime?
+  notes          String?
+  lastSentAt     DateTime?
+  bouncedAt      DateTime?
   unsubscribedAt DateTime?
 
   createdAt DateTime @default(now())
@@ -162,8 +179,8 @@ model Campaign {
   fromName String?
   replyTo  String?
 
-  trackOpens  Boolean @default(true)
-  trackClicks Boolean @default(true)
+  trackOpens         Boolean @default(true)
+  trackClicks        Boolean @default(true)
   includeUnsubscribe Boolean @default(true)
 
   scheduledAt     DateTime?
@@ -186,12 +203,29 @@ model Campaign {
   updatedAt DateTime @updatedAt
 
   lists      CampaignList[]
+  senders    CampaignSender[]
   recipients Recipient[]
   events     Event[]
-  sendLogs   SendLog[]
 
   @@index([status])
   @@index([scheduledAt])
+}
+
+/// Cuentas que se reparten el envío de una campaña.
+///
+/// El límite de Google es **por cuenta**, así que repartir una campaña entre
+/// varias cuentas del dominio multiplica el techo diario sin salirse de
+/// Google Workspace.
+model CampaignSender {
+  campaignId String
+  userId     String
+  addedAt    DateTime @default(now())
+
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@id([campaignId, userId])
+  @@index([userId])
 }
 
 model CampaignList {
@@ -212,12 +246,16 @@ model Recipient {
   contactId  String
 
   // PENDING | SENDING | SENT | FAILED | SKIPPED
-  status   String @default("PENDING")
-  attempts Int    @default(0)
+  status   String  @default("PENDING")
+  attempts Int     @default(0)
   error    String?
 
   // Identificador opaco que viaja en el píxel y en los enlaces rastreados
   trackingId String @unique @default(cuid())
+
+  /// Cuenta que envió este correo. Con varios remitentes en una campaña, es lo
+  /// que permite atribuir cada envío a su cuota.
+  senderId String?
 
   gmailMessageId String?
   gmailThreadId  String?
@@ -232,6 +270,7 @@ model Recipient {
 
   campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
   contact  Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
+  sender   User?    @relation("RecipientSender", fields: [senderId], references: [id], onDelete: SetNull)
   events   Event[]
 
   @@unique([campaignId, contactId])
@@ -268,24 +307,27 @@ model Event {
   @@index([campaignId, type])
 }
 
-/// Registro por usuario y día para no rebasar la cuota diaria de Google Workspace.
+/// Consumo de cuota por cuenta, en cubos de una hora (UTC).
+///
+/// Google aplica sus límites sobre una **ventana móvil de 24 horas**, no sobre
+/// el día natural: si se envían 2.000 correos a las 23:00, a medianoche no se
+/// libera nada. Guardar cubos horarios permite sumar exactamente las últimas
+/// 24 horas, y sobrevive al borrado de la campaña que originó los envíos.
 model SendLog {
   id     String @id @default(cuid())
   userId String
-  day    String // YYYY-MM-DD en la zona horaria configurada
+  hour   String // YYYY-MM-DDTHH en UTC
 
-  count      Int      @default(0)
-  campaignId String?
+  count Int @default(0)
 
-  user     User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  campaign Campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
-  @@unique([userId, day, campaignId])
-  @@index([userId, day])
+  @@unique([userId, hour])
+  @@index([userId, hour])
 }
 
 model ImportJob {
-  id       String @id @default(cuid())
+  id       String  @id @default(cuid())
   filename String
   userId   String?
 
@@ -296,9 +338,9 @@ model ImportJob {
   invalid   Int @default(0)
 
   // PENDING | DONE | FAILED
-  status  String  @default("DONE")
-  errors  String  @default("[]")
-  listIds String  @default("[]")
+  status  String @default("DONE")
+  errors  String @default("[]")
+  listIds String @default("[]")
 
   createdAt DateTime @default(now())
 

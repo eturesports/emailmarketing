@@ -4,7 +4,8 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Alert, Badge, Button, Card, CardHeader, Input, Select, Spinner } from "./ui";
 import { IconCheck } from "./icons";
-import { ROLE_LABELS, type Role } from "@/lib/constants";
+import { ROLE_LABELS, TRANSPORT, TRANSPORT_LIMITS, type Role, type Transport } from "@/lib/constants";
+import { formatNumber } from "@/lib/utils";
 
 export type SettingsUser = {
   id: string;
@@ -13,6 +14,11 @@ export type SettingsUser = {
   replyTo: string | null;
   dailyQuota: number;
   sendRatePerHour: number;
+  transport: Transport;
+  canSend: boolean;
+  smtpUser: string | null;
+  hasSmtpPassword: boolean;
+  usedInWindow: number;
 };
 
 export type TeamMember = {
@@ -38,6 +44,7 @@ export function SettingsForm({
   const router = useRouter();
 
   const [form, setForm] = useState(user);
+  const [smtpPassword, setSmtpPassword] = useState("");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ tone: "success" | "danger"; text: string } | null>(null);
 
@@ -64,6 +71,11 @@ export function SettingsForm({
         replyTo: form.replyTo || null,
         dailyQuota: form.dailyQuota,
         sendRatePerHour: form.sendRatePerHour,
+        transport: form.transport,
+        canSend: form.canSend,
+        smtpUser: form.smtpUser || null,
+        // Vacío significa «no la cambies», para no obligar a reescribirla.
+        ...(smtpPassword.trim() ? { smtpPassword: smtpPassword.trim() } : {}),
       }),
     });
 
@@ -75,6 +87,7 @@ export function SettingsForm({
       return;
     }
 
+    setSmtpPassword("");
     setMessage({ tone: "success", text: "Ajustes guardados." });
     router.refresh();
   }
@@ -150,13 +163,115 @@ export function SettingsForm({
 
         <Card className="mt-4">
           <CardHeader
-            title="Límites de envío"
-            description="Ajústalos al tipo de cuenta de Google que utilizas."
+            title="Vía de envío"
+            description="Determina cuántos correos puede mandar esta cuenta cada 24 horas."
+          />
+          <div className="space-y-4 p-5">
+            <div className="grid gap-2 sm:grid-cols-2">
+              {(Object.keys(TRANSPORT_LIMITS) as Transport[]).map((value) => {
+                const info = TRANSPORT_LIMITS[value];
+                const active = form.transport === value;
+                return (
+                  <button
+                    key={value}
+                    type="button"
+                    onClick={() => update("transport", value)}
+                    aria-pressed={active}
+                    className={`rounded-lg border p-4 text-left transition-colors ${
+                      active ? "border-brand bg-[#0b1f27]" : "border-line hover:border-brand-soft"
+                    }`}
+                  >
+                    <span className="flex items-baseline justify-between gap-2">
+                      <span className="text-sm font-medium">{info.label}</span>
+                      <span className="shrink-0 text-sm font-semibold tabular-nums text-brand">
+                        {formatNumber(info.messagesPer24h)}
+                      </span>
+                    </span>
+                    <span className="mt-1 block text-xs text-ink-faint">{info.hint}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            {form.transport === TRANSPORT.SMTP_RELAY ? (
+              <div className="space-y-3 rounded-lg border border-line bg-surface-2 p-4">
+                <p className="text-xs text-ink-muted">
+                  El relay quintuplica el límite de esta cuenta, pero antes un administrador tiene que habilitarlo en{" "}
+                  <strong className="text-ink">
+                    Consola de administración → Aplicaciones → Google Workspace → Gmail → Enrutamiento → Servicio de
+                    retransmisión SMTP
+                  </strong>
+                  , marcando «Solo direcciones de mis dominios» y «Requerir autenticación SMTP».
+                </p>
+
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <div>
+                    <label className="label" htmlFor="smtpUser">
+                      Cuenta que se autentica
+                    </label>
+                    <Input
+                      id="smtpUser"
+                      type="email"
+                      value={form.smtpUser ?? ""}
+                      onChange={(event) => update("smtpUser", event.target.value)}
+                      placeholder={user.email}
+                    />
+                  </div>
+                  <div>
+                    <label className="label" htmlFor="smtpPassword">
+                      Contraseña de aplicación
+                    </label>
+                    <Input
+                      id="smtpPassword"
+                      type="password"
+                      autoComplete="new-password"
+                      value={smtpPassword}
+                      onChange={(event) => setSmtpPassword(event.target.value)}
+                      placeholder={form.hasSmtpPassword ? "•••••••• (guardada)" : "16 caracteres"}
+                    />
+                    <p className="mt-1 text-xs text-ink-faint">
+                      Se genera en{" "}
+                      <a
+                        href="https://myaccount.google.com/apppasswords"
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-brand hover:underline"
+                      >
+                        Cuenta de Google → Contraseñas de aplicaciones
+                      </a>
+                      . Se comprueba contra el relay antes de guardarla y se almacena cifrada.
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
+            <label className="flex cursor-pointer items-start gap-2.5 border-t border-line pt-4 text-sm">
+              <input
+                type="checkbox"
+                checked={form.canSend}
+                onChange={(event) => update("canSend", event.target.checked)}
+                className="mt-0.5 size-4 shrink-0 rounded border-line bg-surface-2 accent-[#22d3ee]"
+              />
+              <span>
+                <span className="text-ink">Prestar esta cuenta al grupo de remitentes</span>
+                <span className="block text-xs text-ink-faint">
+                  Permite que otras campañas repartan envíos por esta cuenta para superar el techo de una sola.
+                </span>
+              </span>
+            </label>
+          </div>
+        </Card>
+
+        <Card className="mt-4">
+          <CardHeader
+            title="Límites propios"
+            description="Por debajo del techo de Google, para dejar margen a tu correo del día a día."
           />
           <div className="grid gap-4 p-5 sm:grid-cols-2">
             <div>
               <label className="label" htmlFor="dailyQuota">
-                Máximo de correos al día
+                Máximo de correos cada 24 h
               </label>
               <Input
                 id="dailyQuota"
@@ -167,8 +282,11 @@ export function SettingsForm({
                 onChange={(event) => update("dailyQuota", Number(event.target.value))}
               />
               <p className="mt-1 text-xs text-ink-faint">
-                Google Workspace permite hasta 2.000 al día; una cuenta gratuita de Gmail, unos 500. Deja margen para
-                tu correo del día a día.
+                Techo de Google con «{TRANSPORT_LIMITS[form.transport].label}»:{" "}
+                <strong className="text-ink-muted">
+                  {formatNumber(TRANSPORT_LIMITS[form.transport].messagesPer24h)}
+                </strong>{" "}
+                cada 24 h. Llevas {formatNumber(user.usedInWindow)} en la ventana actual.
               </p>
             </div>
             <div>
@@ -185,6 +303,8 @@ export function SettingsForm({
                 <option value="300">300 correos/hora</option>
                 <option value="600">600 correos/hora</option>
                 <option value="1200">1.200 correos/hora</option>
+                <option value="2500">2.500 correos/hora</option>
+                <option value="5000">5.000 correos/hora</option>
               </Select>
               <p className="mt-1 text-xs text-ink-faint">
                 Cada campaña puede usar un ritmo distinto.

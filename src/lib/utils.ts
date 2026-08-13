@@ -70,7 +70,7 @@ export function formatRelative(date: Date | string | null | undefined): string {
   return formatter.format(diffSeconds, "second");
 }
 
-/** Fecha YYYY-MM-DD en la zona horaria configurada (para el corte de cuota diaria). */
+/** Fecha YYYY-MM-DD en la zona horaria configurada (para nombrar exportaciones). */
 export function currentDay(date = new Date()): string {
   return new Intl.DateTimeFormat("en-CA", {
     timeZone: TIMEZONE,

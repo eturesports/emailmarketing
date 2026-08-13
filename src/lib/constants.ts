@@ -124,8 +124,49 @@ export const IMPORT_FIELD_ALIASES: Record<string, string[]> = {
   notes: ["notes", "notas", "comentarios", "observaciones"],
 };
 
+// ---------------------------------------------------------------------------
+// Transportes de envío
+// ---------------------------------------------------------------------------
+
+export const TRANSPORT = {
+  GMAIL_API: "GMAIL_API",
+  SMTP_RELAY: "SMTP_RELAY",
+} as const;
+export type Transport = (typeof TRANSPORT)[keyof typeof TRANSPORT];
+
+/**
+ * Techos que impone Google a cada cuenta, sobre una **ventana móvil de 24 h**
+ * (no sobre el día natural).
+ *
+ * El relay SMTP de Workspace multiplica por cinco el límite de la API de Gmail
+ * para la misma cuenta, a cambio de que un administrador lo habilite en la
+ * consola de administración y de usar una contraseña de aplicación.
+ *
+ * Fuente: «Gmail sending limits in Google Workspace» y «Route outgoing SMTP
+ * relay messages through Google» (Ayuda de Google Workspace).
+ */
+export const TRANSPORT_LIMITS: Record<Transport, { messagesPer24h: number; label: string; hint: string }> = {
+  GMAIL_API: {
+    messagesPer24h: 2000,
+    label: "API de Gmail",
+    hint: "2.000 mensajes cada 24 h por cuenta. No requiere configuración adicional.",
+  },
+  SMTP_RELAY: {
+    messagesPer24h: 10000,
+    label: "Relay SMTP de Workspace",
+    hint: "10.000 mensajes cada 24 h por cuenta. Requiere habilitar el relay en la consola de administración.",
+  },
+};
+
 /** Cuota diaria de Gmail según el tipo de cuenta (referencia informativa). */
 export const GMAIL_DAILY_LIMITS = {
   workspace: 2000,
+  workspaceRelay: 10000,
   personal: 500,
 } as const;
+
+/** Ventana sobre la que Google contabiliza los límites. */
+export const QUOTA_WINDOW_HOURS = 24;
+
+export const SMTP_RELAY_HOST = "smtp-relay.gmail.com";
+export const SMTP_RELAY_PORT = 587;

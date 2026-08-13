@@ -73,7 +73,7 @@ export function Sidebar({ user, quota }: { user: SidebarUser; quota: { sent: num
     <div className="border-t border-line p-3">
       <div className="mb-3 rounded-lg bg-surface-2 p-3">
         <div className="flex items-baseline justify-between text-xs">
-          <span className="font-medium text-ink-muted">Cuota de hoy</span>
+          <span className="font-medium text-ink-muted">Cuota (24 h)</span>
           <span className="tabular-nums text-ink">
             {quota.sent}/{quota.limit}
           </span>
@@ -84,7 +84,7 @@ export function Sidebar({ user, quota }: { user: SidebarUser; quota: { sent: num
             style={{ width: `${percent}%` }}
           />
         </div>
-        <p className="mt-1.5 text-[11px] text-ink-faint">Quedan {remaining} envíos</p>
+        <p className="mt-1.5 text-[11px] text-ink-faint">Quedan {remaining} envíos en tu cuenta</p>
       </div>
 
       <div className="flex items-center gap-2.5 rounded-lg px-1 py-1.5">

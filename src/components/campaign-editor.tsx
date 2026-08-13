@@ -22,25 +22,38 @@ export type EditableCampaign = {
   status: string;
   scheduledAt: string | null;
   listIds: string[];
+  senderIds: string[];
   totalRecipients: number;
 };
 
 type ListOption = { id: string; name: string; color: string; contactCount: number };
 
-type Tab = "contenido" | "destinatarios" | "ajustes";
+export type SenderOption = {
+  id: string;
+  email: string;
+  name: string | null;
+  transportLabel: string;
+  used: number;
+  limit: number;
+  remaining: number;
+  ready: boolean;
+  reason: string | null;
+};
+
+type Tab = "contenido" | "destinatarios" | "remitentes" | "ajustes";
 
 export function CampaignEditor({
   campaign: initial,
   lists,
+  senders,
   customFieldKeys,
   senderEmail,
-  remainingQuota,
 }: {
   campaign: EditableCampaign;
   lists: ListOption[];
+  senders: SenderOption[];
   customFieldKeys: string[];
   senderEmail: string;
-  remainingQuota: number;
 }) {
   const router = useRouter();
   const htmlRef = useRef<HTMLTextAreaElement>(null);
@@ -63,6 +76,19 @@ export function CampaignEditor({
     [lists, campaign.listIds],
   );
 
+  // Si no se elige ninguna cuenta, envía sólo quien creó la campaña. El techo
+  // de la campaña es la suma de lo que le queda a cada cuenta del grupo: el
+  // límite de Google es por cuenta, así que sumar cuentas sube el techo.
+  const activePool = useMemo(() => {
+    const chosen = senders.filter((sender) => campaign.senderIds.includes(sender.id));
+    if (chosen.length > 0) return chosen;
+    return senders.filter((sender) => sender.email === senderEmail);
+  }, [senders, campaign.senderIds, senderEmail]);
+
+  const poolRemaining = activePool.reduce((total, sender) => total + sender.remaining, 0);
+  const poolLimit = activePool.reduce((total, sender) => total + (sender.ready ? sender.limit : 0), 0);
+  const notReady = activePool.filter((sender) => !sender.ready);
+
   // Aviso del navegador si se intenta salir con cambios sin guardar.
   useEffect(() => {
     if (!dirty) return;
@@ -77,6 +103,15 @@ export function CampaignEditor({
   function update<K extends keyof EditableCampaign>(key: K, value: EditableCampaign[K]) {
     setCampaign((current) => ({ ...current, [key]: value }));
     setDirty(true);
+  }
+
+  function toggleSender(id: string) {
+    update(
+      "senderIds",
+      campaign.senderIds.includes(id)
+        ? campaign.senderIds.filter((value) => value !== id)
+        : [...campaign.senderIds, id],
+    );
   }
 
   function toggleList(id: string) {
@@ -125,6 +160,7 @@ export function CampaignEditor({
         includeUnsubscribe: campaign.includeUnsubscribe,
         sendRatePerHour: campaign.sendRatePerHour,
         listIds: campaign.listIds,
+        senderIds: campaign.senderIds,
       }),
     });
 
@@ -190,7 +226,7 @@ export function CampaignEditor({
     <div className="grid gap-4 lg:grid-cols-3">
       <div className="space-y-4 lg:col-span-2">
         <nav className="flex gap-1 rounded-lg border border-line bg-surface p-1" role="tablist">
-          {(["contenido", "destinatarios", "ajustes"] as Tab[]).map((value) => (
+          {(["contenido", "destinatarios", "remitentes", "ajustes"] as Tab[]).map((value) => (
             <button
               key={value}
               type="button"
@@ -355,6 +391,95 @@ export function CampaignEditor({
           </Card>
         ) : null}
 
+        {tab === "remitentes" ? (
+          <Card>
+            <CardHeader
+              title="Cuentas que envían esta campaña"
+              description="Google limita el envío por cuenta, no por dominio: repartir la campaña entre varias cuentas multiplica el techo diario."
+            />
+
+            <div className="space-y-1.5 p-5">
+              {senders.length === 0 ? (
+                <p className="text-sm text-ink-faint">
+                  No hay cuentas disponibles. Cada miembro del equipo aparece aquí tras iniciar sesión.
+                </p>
+              ) : (
+                senders.map((sender) => {
+                  const checked = campaign.senderIds.includes(sender.id);
+                  const percent = sender.limit > 0 ? Math.min(100, (sender.used / sender.limit) * 100) : 0;
+
+                  return (
+                    <label
+                      key={sender.id}
+                      className={`flex cursor-pointer items-start gap-3 rounded-lg border p-3 transition-colors ${
+                        checked ? "border-brand-soft bg-[#0b1f27]" : "border-line"
+                      }`}
+                    >
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={() => toggleSender(sender.id)}
+                        className="mt-0.5 size-4 shrink-0 rounded border-line bg-surface-2 accent-[#22d3ee]"
+                      />
+
+                      <span className="min-w-0 flex-1">
+                        <span className="flex flex-wrap items-baseline justify-between gap-2">
+                          <span className="truncate text-sm font-medium">{sender.name ?? sender.email}</span>
+                          <span className="shrink-0 text-xs tabular-nums text-ink-muted">
+                            {formatNumber(sender.remaining)} disponibles
+                          </span>
+                        </span>
+
+                        <span className="mt-0.5 block truncate text-xs text-ink-faint">
+                          {sender.email} · {sender.transportLabel}
+                        </span>
+
+                        <span className="mt-2 block h-1 overflow-hidden rounded-full bg-surface-3">
+                          <span
+                            className={`block h-full rounded-full ${percent > 85 ? "bg-warning" : "bg-brand"}`}
+                            style={{ width: `${percent}%` }}
+                          />
+                        </span>
+                        <span className="mt-1 block text-[11px] text-ink-faint">
+                          {formatNumber(sender.used)} de {formatNumber(sender.limit)} usados en las últimas 24 h
+                        </span>
+
+                        {!sender.ready && sender.reason ? (
+                          <span className="mt-1.5 block text-[11px] text-warning">{sender.reason}</span>
+                        ) : null}
+                      </span>
+                    </label>
+                  );
+                })
+              )}
+            </div>
+
+            <div className="border-t border-line px-5 py-4">
+              <div className="flex flex-wrap items-baseline justify-between gap-2">
+                <span className="text-sm text-ink-muted">Capacidad de la campaña ahora mismo</span>
+                <span className="text-lg font-semibold tabular-nums text-brand">
+                  {formatNumber(poolRemaining)} correos
+                </span>
+              </div>
+              <p className="mt-1 text-xs text-ink-faint">
+                Techo conjunto de {formatNumber(poolLimit)} cada 24 h con {activePool.length} cuenta(s).
+                {campaign.senderIds.length === 0
+                  ? " Sin selección envía sólo quien creó la campaña."
+                  : ""}
+              </p>
+              {reach > poolRemaining ? (
+                <div className="mt-3">
+                  <Alert tone="info">
+                    Los {formatNumber(reach)} destinatarios no caben en la capacidad actual: se enviarán{" "}
+                    {formatNumber(poolRemaining)} ahora y el resto según se libere cuota. Añade más cuentas al grupo
+                    para acabar antes.
+                  </Alert>
+                </div>
+              ) : null}
+            </div>
+          </Card>
+        ) : null}
+
         {tab === "ajustes" ? (
           <Card>
             <CardHeader title="Ajustes de envío" />
@@ -399,10 +524,13 @@ export function CampaignEditor({
                   <option value="150">Moderado — 150 correos/hora</option>
                   <option value="300">Normal — 300 correos/hora</option>
                   <option value="600">Rápido — 600 correos/hora</option>
-                  <option value="1200">Máximo — 1.200 correos/hora</option>
+                  <option value="1200">Muy rápido — 1.200 correos/hora</option>
+                  <option value="2500">Intensivo — 2.500 correos/hora</option>
+                  <option value="5000">Masivo — 5.000 correos/hora</option>
                 </Select>
                 <p className="mt-1 text-xs text-ink-faint">
-                  Enviar despacio mejora la entregabilidad y reduce el riesgo de que Google limite la cuenta.
+                  Ritmo conjunto de todas las cuentas de la campaña. Enviar despacio mejora la entregabilidad; los
+                  ritmos altos sólo tienen sentido si el grupo de remitentes es amplio.
                 </p>
               </div>
 
@@ -449,10 +577,29 @@ export function CampaignEditor({
                 <dd className="tabular-nums font-medium">{formatNumber(campaign.totalRecipients || reach)}</dd>
               </div>
               <div className="flex justify-between">
-                <dt className="text-ink-muted">Cuota disponible hoy</dt>
-                <dd className="tabular-nums font-medium">{formatNumber(remainingQuota)}</dd>
+                <dt className="text-ink-muted">Capacidad ahora (24 h)</dt>
+                <dd className="tabular-nums font-medium">{formatNumber(poolRemaining)}</dd>
+              </div>
+              <div className="flex justify-between">
+                <dt className="text-ink-muted">Cuentas remitentes</dt>
+                <dd className="tabular-nums font-medium">
+                  <button
+                    type="button"
+                    onClick={() => setTab("remitentes")}
+                    className="text-brand hover:underline"
+                  >
+                    {activePool.length}
+                  </button>
+                </dd>
               </div>
             </dl>
+
+            {notReady.length > 0 ? (
+              <Alert tone="warning">
+                {notReady.length} cuenta(s) del grupo no pueden enviar ahora mismo. Revísalas en la pestaña
+                «remitentes».
+              </Alert>
+            ) : null}
 
             {!canSend ? (
               <Alert tone="info">

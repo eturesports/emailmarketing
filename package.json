@@ -25,6 +25,7 @@
     "googleapis": "173.0.0",
     "jose": "6.2.7",
     "next": "16.2.12",
+    "nodemailer": "^9.0.5",
     "papaparse": "5.5.4",
     "react": "19.2.8",
     "react-dom": "19.2.8",
@@ -35,6 +36,7 @@
   "devDependencies": {
     "@tailwindcss/postcss": "4.3.3",
     "@types/node": "22.20.1",
+    "@types/nodemailer": "^8.0.1",
     "@types/papaparse": "5.3.15",
     "@types/react": "19.2.18",
     "@types/react-dom": "19.2.4",

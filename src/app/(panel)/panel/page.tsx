@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
-import { getSentToday } from "@/lib/sender";
+import { getSentInWindow, effectiveLimit } from "@/lib/quota";
+import { TRANSPORT_LIMITS, type Transport } from "@/lib/constants";
 import { CAMPAIGN_STATUS, CAMPAIGN_STATUS_LABELS, CONTACT_STATUS, type CampaignStatus } from "@/lib/constants";
 import { formatNumber, formatPercent, formatRelative, rate } from "@/lib/utils";
 import {
@@ -29,7 +30,8 @@ export default async function DashboardPage() {
     subscribedContacts,
     unsubscribedContacts,
     totalLists,
-    sentToday,
+    sentInWindow,
+    senderPool,
     recentCampaigns,
     activeCampaigns,
     aggregate,
@@ -38,7 +40,8 @@ export default async function DashboardPage() {
     prisma.contact.count({ where: { status: CONTACT_STATUS.SUBSCRIBED } }),
     prisma.contact.count({ where: { status: CONTACT_STATUS.UNSUBSCRIBED } }),
     prisma.contactList.count(),
-    getSentToday(user.id),
+    getSentInWindow(user.id),
+    prisma.user.findMany({ where: { isActive: true, canSend: true }, select: { transport: true, dailyQuota: true } }),
     prisma.campaign.findMany({
       orderBy: { updatedAt: "desc" },
       take: 6,
@@ -53,6 +56,14 @@ export default async function DashboardPage() {
       _sum: { sentCount: true, openCount: true, clickCount: true },
     }),
   ]);
+
+  // Techo conjunto del dominio: Google limita por cuenta, así que la capacidad
+  // real de una campaña grande es la suma de todas las cuentas del grupo.
+  const poolCeiling = senderPool.reduce(
+    (total, member) =>
+      total + Math.min(TRANSPORT_LIMITS[member.transport as Transport]?.messagesPer24h ?? 0, member.dailyQuota),
+    0,
+  );
 
   const totalSent = aggregate._sum.sentCount ?? 0;
   const totalOpens = aggregate._sum.openCount ?? 0;
@@ -207,25 +218,33 @@ export default async function DashboardPage() {
 
         <div className="space-y-4">
           <Card className="p-5">
-            <h3 className="text-sm font-semibold">Tu cuota de Gmail</h3>
+            <h3 className="text-sm font-semibold">Capacidad de envío</h3>
             <p className="mt-1 text-xs text-ink-muted">
-              Google Workspace limita cuántos correos puede enviar cada cuenta al día.
+              Google limita por cuenta, no por dominio: el techo es la suma de las cuentas del grupo de remitentes.
             </p>
-            <div className="mt-4">
+
+            <p className="mt-4 text-2xl font-semibold tabular-nums text-brand">{formatNumber(poolCeiling)}</p>
+            <p className="text-xs text-ink-faint">
+              correos cada 24 h entre {senderPool.length} cuenta(s)
+            </p>
+
+            <div className="mt-4 border-t border-line pt-4">
               <div className="flex items-baseline justify-between text-sm">
-                <span className="tabular-nums font-semibold">{formatNumber(sentToday)}</span>
-                <span className="text-xs text-ink-faint">de {formatNumber(user.dailyQuota)}</span>
+                <span className="text-xs text-ink-muted">Tu cuenta</span>
+                <span className="text-xs tabular-nums text-ink-faint">
+                  {formatNumber(sentInWindow)} de {formatNumber(effectiveLimit(user))}
+                </span>
               </div>
               <div className="mt-2">
                 <ProgressBar
-                  value={sentToday}
-                  max={user.dailyQuota}
-                  tone={sentToday / user.dailyQuota > 0.85 ? "warning" : "brand"}
-                  label="Cuota diaria consumida"
+                  value={sentInWindow}
+                  max={effectiveLimit(user)}
+                  tone={sentInWindow / Math.max(1, effectiveLimit(user)) > 0.85 ? "warning" : "brand"}
+                  label="Cuota consumida en las últimas 24 h"
                 />
               </div>
               <p className="mt-2 text-xs text-ink-faint">
-                Se reinicia cada día. Puedes ajustar el límite en{" "}
+                Ventana móvil de 24 h, no día natural. Súbelo con el relay SMTP o sumando cuentas en{" "}
                 <Link href="/ajustes" className="text-brand hover:underline">
                   Ajustes
                 </Link>

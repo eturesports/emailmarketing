@@ -10,11 +10,15 @@
  */
 
 import { runQueue } from "../src/lib/sender";
+import { pruneOldBuckets } from "../src/lib/quota";
 import { prisma } from "../src/lib/db";
 
 const INTERVAL_MS = 60_000;
+/** Cada cuántas pasadas se limpian los cubos de cuota caducados. */
+const PRUNE_EVERY = 60;
 
 let stopping = false;
+let passCount = 0;
 
 async function pass(): Promise<void> {
   const started = Date.now();
@@ -33,6 +37,18 @@ async function pass(): Promise<void> {
 
     for (const entry of result.processed) {
       if (entry.message) console.log(`[worker] ${entry.campaignId}: ${entry.message}`);
+      if (entry.perSender && Object.keys(entry.perSender).length > 1) {
+        const reparto = Object.entries(entry.perSender)
+          .map(([email, count]) => `${email}: ${count}`)
+          .join(", ");
+        console.log(`[worker] reparto → ${reparto}`);
+      }
+    }
+
+    passCount += 1;
+    if (passCount % PRUNE_EVERY === 0) {
+      const pruned = await pruneOldBuckets();
+      if (pruned > 0) console.log(`[worker] ${pruned} cubos de cuota caducados eliminados`);
     }
   } catch (error) {
     console.error("[worker] error en la pasada:", error);

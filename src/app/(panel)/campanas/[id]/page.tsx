@@ -3,7 +3,9 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
-import { getRemainingQuota } from "@/lib/sender";
+import { getCapacity } from "@/lib/quota";
+import { transportReadiness } from "@/lib/transport";
+import { TRANSPORT_LIMITS, type Transport } from "@/lib/constants";
 import { CampaignEditor } from "@/components/campaign-editor";
 import { CampaignReport } from "@/components/campaign-report";
 import { PageHeader, StatusBadge } from "@/components/ui";
@@ -25,12 +27,12 @@ export const dynamic = "force-dynamic";
 const EDITABLE = new Set<string>([CAMPAIGN_STATUS.DRAFT, CAMPAIGN_STATUS.SCHEDULED]);
 
 export default async function CampaignDetailPage({ params }: { params: Promise<{ id: string }> }) {
-  const user = await requireUser();
+  await requireUser();
   const { id } = await params;
 
   const campaign = await prisma.campaign.findUnique({
     where: { id },
-    include: { lists: true, sender: { select: { email: true, name: true } } },
+    include: { lists: true, senders: true, sender: { select: { email: true, name: true } } },
   });
   if (!campaign) notFound();
 
@@ -67,16 +69,35 @@ export default async function CampaignDetailPage({ params }: { params: Promise<{
   );
 
   if (editable) {
-    const [lists, remainingQuota, sampleContacts] = await Promise.all([
+    const [lists, senderAccounts, sampleContacts] = await Promise.all([
       prisma.contactList.findMany({
         orderBy: { name: "asc" },
         include: { _count: { select: { memberships: true } } },
       }),
-      getRemainingQuota(user),
+      prisma.user.findMany({ where: { isActive: true, canSend: true }, orderBy: { email: "asc" } }),
       // Muestra pequeña sólo para ofrecer los campos personalizados como
       // botones de inserción en el editor.
       prisma.contact.findMany({ select: { customFields: true }, take: 50, orderBy: { updatedAt: "desc" } }),
     ]);
+
+    // Capacidad restante de cada cuenta en la ventana móvil de 24 h, para poder
+    // mostrar en el editor cuántos correos caben ahora mismo.
+    const capacity = await getCapacity(senderAccounts);
+    const senders = capacity.map((entry) => {
+      const readiness = transportReadiness(entry.user);
+      const transport = entry.user.transport as Transport;
+      return {
+        id: entry.user.id,
+        email: entry.user.email,
+        name: entry.user.name,
+        transportLabel: TRANSPORT_LIMITS[transport]?.label ?? transport,
+        used: entry.used,
+        limit: entry.limit,
+        remaining: readiness.ready ? entry.remaining : 0,
+        ready: readiness.ready,
+        reason: readiness.reason ?? null,
+      };
+    });
 
     const customFieldKeys = [
       ...new Set(sampleContacts.flatMap((contact) => Object.keys(parseCustomFields(contact.customFields)))),
@@ -101,6 +122,7 @@ export default async function CampaignDetailPage({ params }: { params: Promise<{
             status: campaign.status,
             scheduledAt: campaign.scheduledAt ? toLocalInputValue(campaign.scheduledAt) : null,
             listIds: campaign.lists.map((entry) => entry.listId),
+            senderIds: campaign.senders.map((entry) => entry.userId),
             totalRecipients: campaign.totalRecipients,
           }}
           lists={lists.map((list) => ({
@@ -109,9 +131,9 @@ export default async function CampaignDetailPage({ params }: { params: Promise<{
             color: list.color,
             contactCount: list._count.memberships,
           }))}
+          senders={senders}
           customFieldKeys={customFieldKeys}
           senderEmail={campaign.sender.email}
-          remainingQuota={remainingQuota}
         />
       </>
     );

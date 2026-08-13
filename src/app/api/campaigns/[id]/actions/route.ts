@@ -5,7 +5,7 @@ import { ApiError, requireApiUser } from "@/lib/auth";
 import { handleApi } from "@/lib/api";
 import { isValidEmail, normalizeEmail } from "@/lib/utils";
 import { CAMPAIGN_STATUS, RECIPIENT_STATUS } from "@/lib/constants";
-import { buildQueue, getRemainingQuota, processCampaign, sendTestEmail } from "@/lib/sender";
+import { buildQueue, getPoolCapacity, processCampaign, sendTestEmail } from "@/lib/sender";
 
 export const dynamic = "force-dynamic";
 // El envío llama a la API de Gmail una vez por destinatario del primer lote.
@@ -63,7 +63,15 @@ export async function POST(request: NextRequest, { params }: Params) {
           throw new ApiError(400, "No hay destinatarios: las listas seleccionadas están vacías o todos están de baja.");
         }
 
-        const remaining = await getRemainingQuota(user);
+        const capacity = await getPoolCapacity(id);
+        const unusable = capacity.senders.filter((sender) => !sender.ready);
+
+        // Si ninguna cuenta del grupo puede enviar, mejor decirlo ahora que
+        // dejar la campaña en SENDING sin que salga un solo correo.
+        if (capacity.senders.length > 0 && unusable.length === capacity.senders.length) {
+          throw new ApiError(409, unusable.map((sender) => sender.reason).filter(Boolean).join(" "));
+        }
+
         await prisma.campaign.update({
           where: { id },
           data: { status: CAMPAIGN_STATUS.SENDING, startedAt: new Date(), scheduledAt: null, lastError: null },
@@ -77,9 +85,10 @@ export async function POST(request: NextRequest, { params }: Params) {
           ok: true,
           queue,
           result,
+          capacity,
           warning:
-            remaining < queue.total
-              ? `Tu cuota de hoy (${remaining} envíos restantes) no cubre los ${queue.total} destinatarios. El resto saldrá automáticamente mañana.`
+            capacity.totalRemaining < queue.total
+              ? `La capacidad actual (${capacity.totalRemaining} envíos entre ${capacity.senders.length} cuenta(s)) no cubre los ${queue.total} destinatarios. El resto saldrá según se libere cuota. Para acabar antes, añade cuentas al grupo de remitentes o pásalas al relay SMTP.`
               : null,
         };
       }

@@ -6,9 +6,9 @@ proveedor externo.
 
 Enviar desde Gmail significa que los correos salen firmados con el DKIM de
 vuestro dominio, quedan en la carpeta «Enviados» del usuario y heredan la
-reputación de entrega de la cuenta. A cambio, se está sujeto a la cuota diaria
-de Google (2.000 correos/día en Workspace, ~500 en una cuenta gratuita), que la
-plataforma controla y respeta automáticamente.
+reputación de entrega de la cuenta. A cambio, Google impone un límite **por
+cuenta**, que la plataforma controla y respeta automáticamente — y que se puede
+subir bastante (ver [Capacidad de envío](#capacidad-de-envío)).
 
 ---
 
@@ -35,7 +35,7 @@ plataforma controla y respeta automáticamente.
   combinación con un clic.
 - Etiquetas tipo `{{firstName}}` y con valor por defecto: `{{firstName | equipo}}`.
 - Envío de prueba, programación, pausa/reanudación y reintento de fallidos.
-- Ritmo de envío configurable (60–1.200 correos/hora) para cuidar la
+- Ritmo de envío configurable (60–5.000 correos/hora) para cuidar la
   entregabilidad.
 - Seguimiento de **aperturas** (píxel) y **clics** (redirector firmado), enlace
   de baja obligatorio y cabecera `List-Unsubscribe` de un clic (RFC 8058), que
@@ -45,10 +45,81 @@ plataforma controla y respeta automáticamente.
 - Diseños reutilizables con miniatura. Al crear una campaña se **copia** el
   contenido, así que editar la plantilla después no altera lo ya enviado.
 
+**Capacidad**
+- Dos vías de salida por cuenta: API de Gmail (2.000/24 h) o relay SMTP de
+  Workspace (10.000/24 h).
+- Grupo de remitentes: una campaña puede repartirse entre varias cuentas del
+  dominio, sumando la capacidad de todas.
+- Contabilidad sobre ventana móvil de 24 h, como la aplica Google.
+
 **Equipo y control**
 - Acceso restringido por dominio de Google Workspace.
 - Roles (propietario / administrador / miembro) y activación de cuentas.
-- Cuota diaria por usuario y contador en tiempo real.
+- Tope propio por cuenta, por debajo del de Google, y contador en tiempo real.
+
+---
+
+## Capacidad de envío
+
+Google limita **por cuenta, no por dominio**, y lo hace sobre una **ventana
+móvil de 24 horas**: quien envía 2.000 correos a las 23:00 no recupera capacidad
+a medianoche, sino a las 23:00 del día siguiente. La plataforma lleva la cuenta
+igual (cubos horarios en `lib/quota.ts`), así que nunca cree tener margen que
+Google no le va a dar.
+
+Sobre esa base hay dos palancas, **combinables**:
+
+### 1. Relay SMTP en lugar de la API de Gmail — ×5 por cuenta
+
+| Vía | Límite por cuenta / 24 h | Requisitos |
+| --- | --- | --- |
+| API de Gmail | 2.000 | Ninguno: basta con iniciar sesión |
+| Relay SMTP de Workspace | **10.000** | Habilitarlo en la consola de administración + contraseña de aplicación |
+
+Para activarlo, un administrador debe ir a **Consola de administración →
+Aplicaciones → Google Workspace → Gmail → Enrutamiento → Servicio de
+retransmisión SMTP**, crear una regla con «Solo direcciones de mis dominios» y
+«Requerir autenticación SMTP», y marcar «Requerir cifrado TLS». Después, cada
+usuario genera una [contraseña de aplicación](https://myaccount.google.com/apppasswords)
+y la pega en **Ajustes → Vía de envío**. La plataforma valida las credenciales
+contra el relay antes de guardarlas, así que un error de configuración se
+descubre ahí y no a mitad de una campaña.
+
+Contrapartida: los correos enviados por el relay **no quedan en la carpeta
+«Enviados»** del usuario.
+
+### 2. Grupo de remitentes — ×N cuentas
+
+Una campaña puede repartirse entre varias cuentas del dominio desde la pestaña
+**Remitentes**. El envío rota entre ellas, de modo que todas avanzan a un ritmo
+parecido en vez de agotar una y pasar a la siguiente. Si una cuenta se queda sin
+cuota, o Google la limita, se aparta sola y la campaña continúa con el resto.
+
+Combinando ambas:
+
+| Configuración | Correos / 24 h |
+| --- | --- |
+| 1 cuenta, API de Gmail (por defecto) | 2.000 |
+| 1 cuenta, relay SMTP | 10.000 |
+| 4 cuentas, relay SMTP | **40.000** |
+| 10 cuentas, relay SMTP | **100.000** |
+
+El techo del dominio se ve en **Ajustes → Capacidad del dominio** y en el
+resumen; la capacidad concreta de una campaña, en su pestaña **Remitentes**.
+
+Las cuentas del grupo pueden ser buzones normales del equipo o cuentas creadas
+sólo para enviar (`envios1@`, `envios2@`…). Cada una consume una licencia de
+Workspace, que es el coste real de subir el techo por esta vía.
+
+### Si necesitáis más
+
+Por encima de unas decenas de miles de correos diarios, Workspace deja de ser la
+herramienta adecuada: el límite del propio relay a nivel de organización es de
+4,6 millones cada 24 h, pero mucho antes conviene un proveedor de envío masivo
+(Amazon SES, Brevo, Resend…). La capa de transporte (`lib/transport.ts`) está
+aislada precisamente para eso: añadir un proveedor SMTP externo es implementar
+un tercer caso ahí, sin tocar el resto de la plataforma. Se pierde la propiedad
+de «sale de vuestro Gmail», así que es una decisión de negocio, no técnica.
 
 ---
 
