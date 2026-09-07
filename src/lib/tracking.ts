@@ -6,7 +6,21 @@ import { absoluteUrl, env } from "./env";
  *
  * Todo se hace reescribiendo el HTML justo antes de enviar cada correo, de modo
  * que el enlace lleva el `trackingId` de ese destinatario concreto.
+ *
+ * Las URL se construyen sobre una **base configurable** (`base`), no sobre
+ * APP_URL: con un dominio de seguimiento propio, los enlaces del correo salen
+ * de un subdominio del dominio de envío en lugar del dominio de la aplicación.
+ * Los filtros antispam comparan ambos, y que no concuerden penaliza la entrega.
+ * Ver `getTrackingBaseUrl` en lib/settings.ts.
+ *
+ * La base no entra en la firma HMAC de los enlaces, así que cambiar de dominio
+ * no invalida los enlaces de correos ya enviados.
  */
+
+/** Une base y ruta sin depender de APP_URL. */
+function join(base: string, path: string): string {
+  return `${base.replace(/\/$/, "")}${path.startsWith("/") ? path : `/${path}`}`;
+}
 
 /** GIF transparente de 1x1 usado como píxel de apertura. */
 export const TRACKING_PIXEL = Buffer.from(
@@ -33,13 +47,13 @@ export function verifyUrlSignature(trackingId: string, url: string, signature: s
   return crypto.timingSafeEqual(Buffer.from(expected), Buffer.from(signature));
 }
 
-export function openPixelUrl(trackingId: string): string {
-  return absoluteUrl(`/api/track/o/${trackingId}.gif`);
+export function openPixelUrl(trackingId: string, base = env.appUrl): string {
+  return join(base, `/api/track/o/${trackingId}.gif`);
 }
 
-export function clickUrl(trackingId: string, target: string): string {
+export function clickUrl(trackingId: string, target: string, base = env.appUrl): string {
   const encoded = Buffer.from(target, "utf8").toString("base64url");
-  return absoluteUrl(`/api/track/c/${trackingId}?u=${encoded}&s=${signUrl(trackingId, target)}`);
+  return join(base, `/api/track/c/${trackingId}?u=${encoded}&s=${signUrl(trackingId, target)}`);
 }
 
 export function decodeClickTarget(encoded: string): string | null {
@@ -54,15 +68,15 @@ export function decodeClickTarget(encoded: string): string | null {
   }
 }
 
-export function unsubscribeUrl(token: string, campaignId?: string): string {
+export function unsubscribeUrl(token: string, campaignId?: string, base = env.appUrl): string {
   const suffix = campaignId ? `?c=${encodeURIComponent(campaignId)}` : "";
-  return absoluteUrl(`/baja/${token}${suffix}`);
+  return join(base, `/baja/${token}${suffix}`);
 }
 
 /** Enlace de baja en un clic para la cabecera List-Unsubscribe (RFC 8058). */
-export function oneClickUnsubscribeUrl(token: string, campaignId?: string): string {
+export function oneClickUnsubscribeUrl(token: string, campaignId?: string, base = env.appUrl): string {
   const suffix = campaignId ? `?c=${encodeURIComponent(campaignId)}` : "";
-  return absoluteUrl(`/api/unsubscribe/${token}${suffix}`);
+  return join(base, `/api/unsubscribe/${token}${suffix}`);
 }
 
 /**
@@ -72,18 +86,22 @@ export function oneClickUnsubscribeUrl(token: string, campaignId?: string): stri
  * cualquier enlace que todavía contenga una etiqueta de combinación sin
  * resolver (no tendría sentido firmar una URL con `{{...}}` dentro).
  */
-export function rewriteLinks(html: string, trackingId: string): string {
+export function rewriteLinks(html: string, trackingId: string, base = env.appUrl): string {
   return html.replace(/(<a\b[^>]*?\bhref\s*=\s*)(["'])(.*?)\2/gi, (match, prefix: string, quote: string, url: string) => {
     const trimmed = url.trim();
 
     if (!/^https?:\/\//i.test(trimmed)) return match;
     if (trimmed.includes("{{") || trimmed.includes("}}")) return match;
-    if (trimmed.startsWith(absoluteUrl("/baja/")) || trimmed.startsWith(absoluteUrl("/api/"))) return match;
+
+    // Ni el pie de baja ni nuestros propios endpoints se rastrean, vengan por
+    // el dominio de seguimiento o por el de la aplicación.
+    const ownPrefixes = [join(base, "/baja/"), join(base, "/api/"), absoluteUrl("/baja/"), absoluteUrl("/api/")];
+    if (ownPrefixes.some((prefix) => trimmed.startsWith(prefix))) return match;
 
     // El HTML ya viene con entidades; hay que decodificar antes de firmar y
     // volver a codificar al insertar, o la firma no cuadraría en el redirector.
     const decoded = decodeEntities(trimmed);
-    return `${prefix}${quote}${escapeAttribute(clickUrl(trackingId, decoded))}${quote}`;
+    return `${prefix}${quote}${escapeAttribute(clickUrl(trackingId, decoded, base))}${quote}`;
   });
 }
 
@@ -101,8 +119,8 @@ function escapeAttribute(value: string): string {
 }
 
 /** Añade el píxel de apertura justo antes de </body> (o al final del HTML). */
-export function injectOpenPixel(html: string, trackingId: string): string {
-  const pixel = `<img src="${escapeAttribute(openPixelUrl(trackingId))}" width="1" height="1" alt="" style="display:block;width:1px;height:1px;border:0;outline:none;" />`;
+export function injectOpenPixel(html: string, trackingId: string, base = env.appUrl): string {
+  const pixel = `<img src="${escapeAttribute(openPixelUrl(trackingId, base))}" width="1" height="1" alt="" style="display:block;width:1px;height:1px;border:0;outline:none;" />`;
 
   if (/<\/body>/i.test(html)) {
     return html.replace(/<\/body>/i, `${pixel}</body>`);
@@ -114,11 +132,17 @@ export type UnsubscribeFooterOptions = {
   token: string;
   campaignId: string;
   senderName: string;
+  base?: string;
 };
 
 /** Pie de baja obligatorio (art. 21 LSSI / RGPD) que se añade al final. */
-export function buildUnsubscribeFooter({ token, campaignId, senderName }: UnsubscribeFooterOptions): string {
-  const url = escapeAttribute(unsubscribeUrl(token, campaignId));
+export function buildUnsubscribeFooter({
+  token,
+  campaignId,
+  senderName,
+  base = env.appUrl,
+}: UnsubscribeFooterOptions): string {
+  const url = escapeAttribute(unsubscribeUrl(token, campaignId, base));
 
   return `
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-top:32px;border-top:1px solid #e5e7eb;">
@@ -144,10 +168,13 @@ export type PrepareHtmlOptions = {
   trackOpens: boolean;
   trackClicks: boolean;
   includeUnsubscribe: boolean;
+  /** Dominio propio de seguimiento; por defecto, el de la aplicación. */
+  base?: string;
 };
 
 /** Aplica pie de baja, reescritura de enlaces y píxel, en ese orden. */
 export function prepareHtmlForSend(options: PrepareHtmlOptions): string {
+  const base = options.base ?? env.appUrl;
   let html = options.html;
 
   if (options.includeUnsubscribe) {
@@ -155,6 +182,7 @@ export function prepareHtmlForSend(options: PrepareHtmlOptions): string {
       token: options.unsubscribeToken,
       campaignId: options.campaignId,
       senderName: options.senderName,
+      base,
     });
     html = /<\/body>/i.test(html) ? html.replace(/<\/body>/i, `${footer}</body>`) : `${html}${footer}`;
   }
@@ -162,11 +190,11 @@ export function prepareHtmlForSend(options: PrepareHtmlOptions): string {
   // La reescritura va después del pie para que su enlace de baja quede fuera
   // (rewriteLinks lo excluye explícitamente) y no contamine las estadísticas.
   if (options.trackClicks) {
-    html = rewriteLinks(html, options.trackingId);
+    html = rewriteLinks(html, options.trackingId, base);
   }
 
   if (options.trackOpens) {
-    html = injectOpenPixel(html, options.trackingId);
+    html = injectOpenPixel(html, options.trackingId, base);
   }
 
   return html;

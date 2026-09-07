@@ -217,7 +217,18 @@ export const SETTING_KEYS = {
   RESEND_API_KEY: "resend.apiKey",
   RESEND_DAILY_LIMIT: "resend.dailyLimit",
   RESEND_WEBHOOK_SECRET: "resend.webhookSecret",
+  TRACKING_DOMAIN: "tracking.domain",
+  TRACKING_VERIFIED_AT: "tracking.verifiedAt",
 } as const;
+
+/**
+ * Marca que devuelve /api/track/health.
+ *
+ * Sirve para comprobar que un dominio de seguimiento apunta de verdad a esta
+ * instalación: si la respuesta no la lleva, el CNAME está mal o hay otro
+ * servicio delante, y los enlaces de las campañas se romperían.
+ */
+export const TRACKING_HEALTH_MARKER = "eture-mailer-tracking";
 
 /** Cuota diaria de Gmail según el tipo de cuenta (referencia informativa). */
 export const GMAIL_DAILY_LIMITS = {

@@ -55,6 +55,11 @@ subir bastante (ver [Capacidad de envío](#capacidad-de-envío)).
   no necesita cuenta de Google.
 - Cada uno con su vía de envío, su tope y su ritmo.
 
+**Entregabilidad**
+- Dominio de seguimiento propio, para que los enlaces del correo salgan de un
+  subdominio del dominio de envío en lugar del dominio de la aplicación.
+- Rebotes y quejas de spam procesados por webhook cuando se envía con Resend.
+
 **Plantillas**
 - Diseños reutilizables con miniatura. Al crear una campaña se **copia** el
   contenido, así que editar la plantilla después no altera lo ya enviado.
@@ -65,7 +70,6 @@ subir bastante (ver [Capacidad de envío](#capacidad-de-envío)).
 - Grupo de remitentes: una campaña puede repartirse entre varias cuentas del
   dominio, sumando la capacidad de todas.
 - Contabilidad sobre ventana móvil de 24 h, como la aplica Google.
-- Rebotes y quejas de spam procesados por webhook cuando se envía con Resend.
 
 **Equipo y control**
 - Acceso restringido por dominio de Google Workspace.
@@ -168,6 +172,42 @@ rechazan con un 401.
 
 Los envíos por Resend llevan una clave de idempotencia por destinatario, de modo
 que un reintento tras un fallo de red no puede duplicar un correo.
+
+---
+
+## Dominio de seguimiento
+
+Cada campaña lleva dentro tres enlaces nuestros: el píxel de apertura, el
+redirector de clics y la página de baja. Sin configurar nada salen del dominio
+de la aplicación, y ahí está el problema: **los filtros antispam comparan el
+dominio de los enlaces con el del remitente**, y cuando no concuerdan la
+puntuación empeora. Un correo enviado desde `marketing@eturesports.com` con
+todos los enlaces apuntando a otro sitio es exactamente el patrón que penalizan.
+
+Con un subdominio propio quedan alineados. Se configura en **Ajustes → Dominio
+de seguimiento**:
+
+1. Crea un registro **CNAME** de `link` (o el subdominio que prefieras) hacia el
+   host de la aplicación. La propia pantalla muestra el valor exacto.
+2. Da de alta el subdominio en tu hosting para que emita el certificado HTTPS.
+3. Pulsa **Guardar y verificar**.
+
+La verificación no se conforma con mirar el DNS: pide
+`https://link.eturesports.com/api/track/health` y comprueba que responde **esta**
+instalación. Un CNAME correcto con el certificado sin emitir, o con otro
+servicio delante, dejaría enlaces rotos dentro de correos ya enviados — y eso es
+peor que no tener dominio propio. Por eso **el dominio sólo entra en uso cuando
+la verificación pasa**; mientras tanto se sigue usando el de la aplicación.
+
+Dos detalles que evitan sorpresas:
+
+- **Cambiar de dominio no rompe los correos ya enviados.** La firma HMAC de los
+  enlaces rastreados cubre el destino, no el dominio desde el que se sirven, así
+  que los enlaces antiguos siguen funcionando mientras la aplicación responda en
+  ambos.
+- La comprobación **rechaza dominios que resuelven a direcciones privadas**, para
+  que nadie con acceso al panel pueda usarla para sondear la red interna del
+  servidor.
 
 ---
 
@@ -337,6 +377,7 @@ src/
     merge.ts              Motor de etiquetas de combinación
     quota.ts              Cuota en ventana móvil de 24 h
     resend.ts             Cliente de Resend y verificación de webhooks
+    tracking-domain.ts    Verificación del dominio de seguimiento propio
     sender.ts             Cola de envío, grupo de remitentes y ritmo
     settings.ts           Configuración de la organización (cifrada)
     transport.ts          Gmail API / relay SMTP / Resend

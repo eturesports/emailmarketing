@@ -6,7 +6,7 @@ import { Card, CardHeader, PageHeader } from "@/components/ui";
 import { SettingsForm } from "@/components/settings-form";
 import { env } from "@/lib/env";
 import { aggregateCapacity, getCapacity } from "@/lib/quota";
-import { getResendConfig } from "@/lib/settings";
+import { getResendConfig, getTrackingConfig } from "@/lib/settings";
 import { formatNumber } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Ajustes" };
@@ -16,7 +16,7 @@ export default async function SettingsPage() {
   const user = await requireUser();
   const admin = isAdmin(user);
 
-  const [team, senders, resendConfig] = await Promise.all([
+  const [team, senders, resendConfig, trackingConfig] = await Promise.all([
     admin
       ? prisma.user.findMany({
           orderBy: [{ role: "asc" }, { email: "asc" }],
@@ -25,6 +25,7 @@ export default async function SettingsPage() {
       : Promise.resolve([]),
     prisma.sender.findMany({ where: { isActive: true } }),
     getResendConfig(),
+    getTrackingConfig(),
   ]);
 
   const capacity = await getCapacity(senders);
@@ -46,6 +47,7 @@ export default async function SettingsPage() {
         isAdmin={admin}
         currentUserId={user.id}
         resendConfig={resendConfig}
+        trackingConfig={trackingConfig}
         appUrl={env.appUrl}
       />
 

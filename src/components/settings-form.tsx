@@ -16,6 +16,13 @@ export type TeamMember = {
   senderCount: number;
 };
 
+export type TrackingConfigView = {
+  domain: string | null;
+  verifiedAt: string | null;
+  baseUrl: string;
+  cnameTarget: string;
+};
+
 export type ResendConfigView = {
   configured: boolean;
   dailyLimit: number;
@@ -34,15 +41,22 @@ export function SettingsForm({
   isAdmin,
   currentUserId,
   resendConfig,
+  trackingConfig,
   appUrl,
 }: {
   team: TeamMember[];
   isAdmin: boolean;
   currentUserId: string;
   resendConfig: ResendConfigView;
+  trackingConfig: TrackingConfigView;
   appUrl: string;
 }) {
   const router = useRouter();
+
+  const [tracking, setTracking] = useState(trackingConfig);
+  const [trackingDomain, setTrackingDomain] = useState(trackingConfig.domain ?? "");
+  const [checkingTracking, setCheckingTracking] = useState(false);
+  const [trackingMessage, setTrackingMessage] = useState<{ tone: "success" | "danger"; text: string } | null>(null);
 
   const [resend, setResend] = useState(resendConfig);
   const [resendKey, setResendKey] = useState("");
@@ -90,6 +104,38 @@ export function SettingsForm({
     router.refresh();
   }
 
+  async function saveTracking(payload: { domain?: string | null; verify?: boolean }) {
+    setCheckingTracking(true);
+    setTrackingMessage(null);
+
+    const response = await fetch("/api/settings/tracking", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+
+    const data = await response.json().catch(() => ({}));
+    setCheckingTracking(false);
+
+    if (!response.ok) {
+      setTrackingMessage({ tone: "danger", text: data.error ?? "No se ha podido guardar." });
+      return;
+    }
+
+    setTracking({
+      domain: data.domain,
+      verifiedAt: data.verifiedAt,
+      baseUrl: data.baseUrl,
+      cnameTarget: data.cnameTarget,
+    });
+    setTrackingDomain(data.domain ?? "");
+
+    if (data.verification) {
+      setTrackingMessage({ tone: data.verification.ok ? "success" : "danger", text: data.verification.message });
+    }
+    router.refresh();
+  }
+
   async function updateMember(id: string, changes: { role?: string; isActive?: boolean }) {
     const response = await fetch("/api/settings", {
       method: "POST",
@@ -108,6 +154,123 @@ export function SettingsForm({
   return (
     <div className="space-y-4">
       {message ? <Alert tone={message.tone}>{message.text}</Alert> : null}
+
+      {isAdmin ? (
+        <Card>
+          <CardHeader
+            title="Dominio de seguimiento"
+            description="Desde qué dominio salen el píxel, los enlaces y la página de baja de tus campañas."
+            action={
+              tracking.verifiedAt ? (
+                <Badge tone="success">
+                  <IconCheck size={13} />
+                  Verificado
+                </Badge>
+              ) : tracking.domain ? (
+                <Badge tone="warning">Sin verificar</Badge>
+              ) : (
+                <Badge tone="neutral">Sin configurar</Badge>
+              )
+            }
+          />
+
+          <div className="space-y-4 p-5">
+            <p className="text-xs text-ink-muted">
+              Los filtros antispam comparan el dominio de los enlaces con el del remitente. Ahora mismo tus enlaces
+              salen de{" "}
+              <code className="rounded bg-surface-3 px-1 font-mono text-[11px] text-brand">{tracking.baseUrl}</code>,
+              que no concuerda con <strong className="text-ink">eturesports.com</strong>. Con un subdominio propio
+              (<code className="rounded bg-surface-3 px-1 font-mono text-[11px]">link.eturesports.com</code>) quedan
+              alineados.
+            </p>
+
+            <div className="flex flex-wrap items-end gap-2">
+              <div className="min-w-[220px] flex-1">
+                <label className="label" htmlFor="trackingDomain">
+                  Subdominio
+                </label>
+                <Input
+                  id="trackingDomain"
+                  value={trackingDomain}
+                  onChange={(event) => setTrackingDomain(event.target.value)}
+                  placeholder="link.eturesports.com"
+                />
+              </div>
+
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={checkingTracking || !trackingDomain.trim()}
+                onClick={() => saveTracking({ domain: trackingDomain.trim() })}
+              >
+                {checkingTracking ? "Comprobando…" : "Guardar y verificar"}
+              </Button>
+
+              {tracking.domain ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  disabled={checkingTracking}
+                  onClick={() => saveTracking({ verify: true })}
+                >
+                  Volver a comprobar
+                </Button>
+              ) : null}
+
+              {tracking.domain ? (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  disabled={checkingTracking}
+                  onClick={() => {
+                    if (confirm("¿Quitar el dominio propio? Los enlaces volverán a salir del dominio de la aplicación.")) {
+                      saveTracking({ domain: null });
+                    }
+                  }}
+                >
+                  Quitar
+                </Button>
+              ) : null}
+            </div>
+
+            <div className="rounded-lg border border-line bg-surface-2 p-4">
+              <p className="text-xs font-medium text-ink-muted">Registro DNS que hay que crear</p>
+              <div className="mt-2 overflow-x-auto">
+                <table className="w-full min-w-[420px] text-xs">
+                  <thead>
+                    <tr className="text-ink-faint">
+                      <th className="pb-1 text-left font-medium">Tipo</th>
+                      <th className="pb-1 text-left font-medium">Nombre</th>
+                      <th className="pb-1 text-left font-medium">Valor</th>
+                    </tr>
+                  </thead>
+                  <tbody className="font-mono text-ink">
+                    <tr>
+                      <td className="py-1 pr-4">CNAME</td>
+                      <td className="py-1 pr-4">{(trackingDomain || "link.eturesports.com").split(".")[0]}</td>
+                      <td className="py-1">{tracking.cnameTarget}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+              <p className="mt-2 text-xs text-ink-faint">
+                Después, da de alta el subdominio en tu hosting para que emita el certificado HTTPS. La verificación
+                comprueba justo eso: que <code className="font-mono">https://{trackingDomain || "tu-subdominio"}</code>{" "}
+                responde y es esta aplicación.
+              </p>
+            </div>
+
+            {trackingMessage ? <Alert tone={trackingMessage.tone}>{trackingMessage.text}</Alert> : null}
+
+            {tracking.domain && !tracking.verifiedAt ? (
+              <Alert tone="warning">
+                Mientras no se verifique, los enlaces seguirán saliendo del dominio de la aplicación. Es a propósito:
+                un CNAME a medias dejaría enlaces rotos dentro de correos ya enviados.
+              </Alert>
+            ) : null}
+          </div>
+        </Card>
+      ) : null}
 
       {isAdmin ? (
         <Card>

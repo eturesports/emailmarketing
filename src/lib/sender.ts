@@ -14,6 +14,7 @@ import { buildMergeContext, htmlToPlainText, renderTemplate } from "./merge";
 import { oneClickUnsubscribeUrl, prepareHtmlForSend } from "./tracking";
 import { openTransport, transportReadiness, type SendContext, type SenderWithUser } from "./transport";
 import { getCapacity, quotaKeyFor, recordSend, type SenderCapacity } from "./quota";
+import { getTrackingBaseUrl } from "./settings";
 import { env } from "./env";
 
 /**
@@ -322,6 +323,7 @@ export function renderForContact(
   trackingId: string,
   senderName: string,
   step?: Pick<SequenceStep, "subject" | "html"> | null,
+  trackingBase?: string,
 ): RenderedEmail {
   const context = buildMergeContext(contact);
 
@@ -344,6 +346,7 @@ export function renderForContact(
     trackOpens: campaign.trackOpens,
     trackClicks: campaign.trackClicks,
     includeUnsubscribe: campaign.includeUnsubscribe,
+    base: trackingBase,
   });
 
   return { subject, html, text: htmlToPlainText(html) };
@@ -478,6 +481,10 @@ export async function processCampaign(campaignId: string, batchSize = env.cronBa
     return { campaignId, processed: 0, sent: 0, failed: 0, stopped: "empty" };
   }
 
+  // La base de los enlaces se resuelve una vez por lote, no por correo: es una
+  // consulta a los ajustes y no cambia a mitad de pasada.
+  const trackingBase = await getTrackingBaseUrl();
+
   let sent = 0;
   let failed = 0;
   let cursor = 0;
@@ -519,7 +526,7 @@ export async function processCampaign(campaignId: string, batchSize = env.cronBa
 
       const fromName = sender.fromName || campaign.fromName || sender.label;
       const replyTo = sender.replyTo || campaign.replyTo || null;
-      const rendered = renderForContact(campaign, contact, message.trackingId, fromName, message.step);
+      const rendered = renderForContact(campaign, contact, message.trackingId, fromName, message.step, trackingBase);
 
       try {
         const result = await slot.context.send(
@@ -536,7 +543,7 @@ export async function processCampaign(campaignId: string, batchSize = env.cronBa
             inReplyTo: message.rootId ? messageIdFor(message.rootId) : null,
             gmailThreadId: message.root?.gmailThreadId ?? null,
             listUnsubscribeUrl: campaign.includeUnsubscribe
-              ? oneClickUnsubscribeUrl(contact.unsubscribeToken, campaign.id)
+              ? oneClickUnsubscribeUrl(contact.unsubscribeToken, campaign.id, trackingBase)
               : null,
           },
           // Clave estable por mensaje: si un fallo de red obliga a reintentar,
