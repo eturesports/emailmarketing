@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db";
 import { createOAuthClient, isEmailAllowed, persistCredentials } from "@/lib/google";
 import { consumeOAuthState, createSession } from "@/lib/session";
 import { absoluteUrl, env } from "@/lib/env";
-import { ROLE } from "@/lib/constants";
+import { ROLE, TRANSPORT } from "@/lib/constants";
 import { safeEqual } from "@/lib/crypto";
 
 export const dynamic = "force-dynamic";
@@ -13,6 +13,35 @@ export const dynamic = "force-dynamic";
  * Vuelta del consentimiento de Google: valida el `state`, canjea el código por
  * tokens, comprueba que el dominio esté autorizado y abre la sesión.
  */
+/**
+ * Crea el remitente por defecto de quien acaba de entrar.
+ *
+ * Un usuario recién autorizado ya puede enviar desde su propia dirección, así
+ * que se le da de alta como remitente sin obligarle a configurarlo a mano. Si
+ * ya existía uno con ese correo no se toca: puede haberlo ajustado alguien.
+ */
+async function ensureDefaultSender(userId: string, email: string, name: string | null): Promise<void> {
+  const existing = await prisma.sender.findUnique({ where: { fromEmail: email } });
+
+  if (existing) {
+    // Reconecta el remitente con la cuenta si se había quedado huérfano.
+    if (!existing.userId) {
+      await prisma.sender.update({ where: { id: existing.id }, data: { userId } });
+    }
+    return;
+  }
+
+  await prisma.sender.create({
+    data: {
+      label: name ?? email,
+      fromEmail: email,
+      fromName: name,
+      transport: TRANSPORT.GMAIL_API,
+      userId,
+    },
+  });
+}
+
 export async function GET(request: NextRequest) {
   const url = new URL(request.url);
   const code = url.searchParams.get("code");
@@ -63,7 +92,6 @@ export async function GET(request: NextRequest) {
         name: profile.name ?? null,
         imageUrl: profile.picture ?? null,
         role: isOwner ? ROLE.OWNER : ROLE.MEMBER,
-        fromName: profile.name ?? null,
         lastLoginAt: new Date(),
       },
       update: {
@@ -80,6 +108,7 @@ export async function GET(request: NextRequest) {
     }
 
     await persistCredentials(user.id, tokens);
+    await ensureDefaultSender(user.id, email, profile.name ?? null);
     await createSession(user.id);
 
     return NextResponse.redirect(absoluteUrl("/panel"));

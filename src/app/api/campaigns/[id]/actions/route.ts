@@ -25,12 +25,12 @@ type Params = { params: Promise<{ id: string }> };
 
 export async function POST(request: NextRequest, { params }: Params) {
   return handleApi(async () => {
-    const user = await requireApiUser();
+    await requireApiUser();
     const { id } = await params;
 
     const campaign = await prisma.campaign.findUnique({
       where: { id },
-      include: { sender: true, lists: true },
+      include: { sender: { include: { user: true } }, lists: true },
     });
     if (!campaign) throw new ApiError(404, "La campaña no existe.");
 

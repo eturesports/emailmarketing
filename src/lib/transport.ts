@@ -1,5 +1,5 @@
 import nodemailer, { type Transporter } from "nodemailer";
-import type { User } from "@prisma/client";
+import type { Sender, User } from "@prisma/client";
 import { SMTP_RELAY_HOST, SMTP_RELAY_PORT, TRANSPORT, TRANSPORT_LIMITS, type Transport } from "./constants";
 import { getAuthenticatedClient } from "./google";
 import { buildMimeMessage, sendMimeMessage, type BuildMessageOptions, type SendResult } from "./gmail";
@@ -53,52 +53,68 @@ export class TransportConfigError extends Error {
 }
 
 /** Transporte efectivo de una cuenta (con respaldo si el valor no se reconoce). */
-export function transportOf(user: Pick<User, "transport">): Transport {
-  if (user.transport === TRANSPORT.SMTP_RELAY) return TRANSPORT.SMTP_RELAY;
-  if (user.transport === TRANSPORT.RESEND) return TRANSPORT.RESEND;
+export function transportOf(sender: Pick<Sender, "transport">): Transport {
+  if (sender.transport === TRANSPORT.SMTP_RELAY) return TRANSPORT.SMTP_RELAY;
+  if (sender.transport === TRANSPORT.RESEND) return TRANSPORT.RESEND;
   return TRANSPORT.GMAIL_API;
 }
 
 /** Tope que impone el proveedor a esta cuenta según su transporte. */
-export function transportLimit(user: Pick<User, "transport">): number {
-  return TRANSPORT_LIMITS[transportOf(user)].messagesPer24h;
+export function transportLimit(sender: Pick<Sender, "transport">): number {
+  return TRANSPORT_LIMITS[transportOf(sender)].messagesPer24h;
 }
 
 /**
  * Igual que `transportLimit`, pero con el tope real de Resend leído de los
  * ajustes de la organización (que refleja el plan contratado).
  */
-export async function resolvedTransportLimit(user: Pick<User, "transport">): Promise<number> {
-  if (transportOf(user) === TRANSPORT.RESEND) return getResendDailyLimit();
-  return transportLimit(user);
+export async function resolvedTransportLimit(sender: Pick<Sender, "transport">): Promise<number> {
+  if (transportOf(sender) === TRANSPORT.RESEND) return getResendDailyLimit();
+  return transportLimit(sender);
 }
 
 /**
  * ¿Está la cuenta lista para enviar? Devuelve el motivo si no lo está, para
  * poder avisar en la interfaz antes de lanzar una campaña y no a mitad.
  */
-export function transportReadiness(user: User): { ready: boolean; reason?: string } {
-  const kind = transportOf(user);
+/** Un remitente con la cuenta de Google que lo respalda, cuando la necesita. */
+export type SenderWithUser = Sender & { user: User | null };
+
+export function transportReadiness(sender: SenderWithUser): { ready: boolean; reason?: string } {
+  const kind = transportOf(sender);
+
+  if (!sender.isActive) {
+    return { ready: false, reason: `El remitente ${sender.fromEmail} está desactivado.` };
+  }
 
   if (kind === TRANSPORT.RESEND) {
-    // La clave vive en los ajustes de la organización, no en el usuario, así
-    // que aquí sólo se puede comprobar de forma síncrona el resto. El chequeo
-    // real se hace en `assertResendReady`, antes de abrir el transporte.
+    // La clave vive en los ajustes de la organización, no en el remitente, así
+    // que aquí no se puede comprobar sin ir a base de datos. El chequeo real lo
+    // hace `openResend` antes del primer envío.
     return { ready: true };
   }
 
   if (kind === TRANSPORT.SMTP_RELAY) {
-    if (!user.smtpUser || !user.smtpPassword) {
+    if (!sender.smtpUser || !sender.smtpPassword) {
       return {
         ready: false,
-        reason: `${user.email} usa el relay SMTP pero no tiene credenciales configuradas en Ajustes.`,
+        reason: `${sender.fromEmail} usa el relay SMTP pero no tiene credenciales configuradas.`,
       };
     }
     return { ready: true };
   }
 
-  if (!user.refreshToken && !user.accessToken) {
-    return { ready: false, reason: `${user.email} no ha autorizado el acceso a Gmail. Tiene que iniciar sesión.` };
+  if (!sender.user) {
+    return { ready: false, reason: `${sender.fromEmail} no tiene ninguna cuenta de Google asociada.` };
+  }
+  if (!sender.user.isActive) {
+    return { ready: false, reason: `La cuenta ${sender.user.email}, que respalda a ${sender.fromEmail}, está desactivada.` };
+  }
+  if (!sender.user.refreshToken && !sender.user.accessToken) {
+    return {
+      ready: false,
+      reason: `${sender.user.email} no ha autorizado el acceso a Gmail. Tiene que volver a iniciar sesión.`,
+    };
   }
   return { ready: true };
 }
@@ -109,23 +125,23 @@ export function transportReadiness(user: User): { ready: boolean; reason?: strin
  * Se abre una vez por lote y no por correo: en SMTP eso evita renegociar TLS
  * en cada mensaje, y en la API de Gmail evita refrescar el token N veces.
  */
-export async function openTransport(user: User): Promise<SendContext> {
-  const kind = transportOf(user);
+export async function openTransport(sender: SenderWithUser): Promise<SendContext> {
+  const kind = transportOf(sender);
 
   if (kind === TRANSPORT.RESEND) {
-    return openResend(user);
+    return openResend(sender);
   }
   if (kind === TRANSPORT.SMTP_RELAY) {
-    return openSmtpRelay(user);
+    return openSmtpRelay(sender);
   }
-  return openGmailApi(user);
+  return openGmailApi(sender);
 }
 
-async function openResend(user: User): Promise<SendContext> {
+async function openResend(sender: Sender): Promise<SendContext> {
   const apiKey = await getResendApiKey();
   if (!apiKey) {
     throw new TransportConfigError(
-      `${user.email} está configurada para enviar por Resend, pero no hay ninguna clave de API guardada. Añádela en Ajustes.`,
+      `${sender.fromEmail} envía por Resend, pero no hay ninguna clave de API guardada. Añádela en Ajustes.`,
     );
   }
 
@@ -150,13 +166,16 @@ async function openResend(user: User): Promise<SendContext> {
   };
 }
 
-async function openGmailApi(user: User): Promise<SendContext> {
-  const auth = await getAuthenticatedClient(user);
+async function openGmailApi(sender: SenderWithUser): Promise<SendContext> {
+  if (!sender.user) {
+    throw new TransportConfigError(`${sender.fromEmail} no tiene ninguna cuenta de Google asociada.`);
+  }
+  const auth = await getAuthenticatedClient(sender.user);
 
   return {
     transport: TRANSPORT.GMAIL_API,
     async send(options) {
-      return sendMimeMessage(auth, buildMimeMessage(options));
+      return sendMimeMessage(auth, buildMimeMessage(options), options.gmailThreadId);
     },
     async close() {
       // El cliente OAuth no mantiene conexiones abiertas.
@@ -164,13 +183,13 @@ async function openGmailApi(user: User): Promise<SendContext> {
   };
 }
 
-async function openSmtpRelay(user: User): Promise<SendContext> {
-  const username = user.smtpUser?.trim();
-  const password = tryDecrypt(user.smtpPassword);
+async function openSmtpRelay(sender: Sender): Promise<SendContext> {
+  const username = sender.smtpUser?.trim();
+  const password = tryDecrypt(sender.smtpPassword);
 
   if (!username || !password) {
     throw new TransportConfigError(
-      `${user.email} está configurada para enviar por el relay SMTP, pero faltan las credenciales. Añádelas en Ajustes.`,
+      `${sender.fromEmail} envía por el relay SMTP, pero faltan las credenciales. Añádelas en Remitentes.`,
     );
   }
 

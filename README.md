@@ -41,6 +41,20 @@ subir bastante (ver [Capacidad de envío](#capacidad-de-envío)).
   de baja obligatorio y cabecera `List-Unsubscribe` de un clic (RFC 8058), que
   es lo que hace que Gmail muestre su propio botón «Cancelar suscripción».
 
+**Secuencias de seguimiento**
+- Hasta 5 correos automáticos por campaña, con espera y condición propias:
+  a todos, a quien no abrió o a quien no hizo clic.
+- Salen del **mismo remitente y en el mismo hilo** que el mensaje original, así
+  que se leen como continuación y no como un correo nuevo.
+- Nadie que se haya dado de baja, haya rebotado o haya marcado el correo como
+  spam vuelve a recibir nada, aunque la condición encaje.
+
+**Remitentes**
+- Entidad propia, separada de los usuarios: una cuenta de Google puede tener
+  varios alias «enviar como» y cada uno es un remitente; un remitente de Resend
+  no necesita cuenta de Google.
+- Cada uno con su vía de envío, su tope y su ritmo.
+
 **Plantillas**
 - Diseños reutilizables con miniatura. Al crear una campaña se **copia** el
   contenido, así que editar la plantilla después no altera lo ya enviado.
@@ -91,10 +105,16 @@ Contrapartida: los correos enviados por el relay **no quedan en la carpeta
 
 ### 2. Grupo de remitentes — ×N cuentas
 
-Una campaña puede repartirse entre varias cuentas del dominio desde la pestaña
-**Remitentes**. El envío rota entre ellas, de modo que todas avanzan a un ritmo
-parecido en vez de agotar una y pasar a la siguiente. Si una cuenta se queda sin
-cuota, o Google la limita, se aparta sola y la campaña continúa con el resto.
+Una campaña puede repartirse entre varios remitentes desde su pestaña
+**Remitentes**. El envío rota entre ellos, de modo que todos avanzan a un ritmo
+parecido en vez de agotar uno y pasar al siguiente. Si uno se queda sin cuota, o
+el proveedor lo limita, se aparta solo y la campaña continúa con el resto.
+
+Un detalle que importa: **el sujeto de la cuota no es el remitente**. Dos alias
+de la misma cuenta de Google son dos remitentes, pero comparten un único límite
+de 2.000, y todos los remitentes de Resend comparten el plan del equipo. La
+plataforma agrupa por ese sujeto y reparte el hueco disponible, en lugar de
+anunciar una capacidad que no existe.
 
 Combinando ambas:
 
@@ -148,6 +168,42 @@ rechazan con un 401.
 
 Los envíos por Resend llevan una clave de idempotencia por destinatario, de modo
 que un reintento tras un fallo de red no puede duplicar un correo.
+
+---
+
+## Secuencias de seguimiento
+
+Cada campaña puede llevar hasta cinco correos de seguimiento. Se configuran en
+la pestaña **Secuencia** y cada paso tiene tres cosas: cuánto espera desde el
+envío inicial, a quién va y qué dice.
+
+| Condición | A quién llega |
+| --- | --- |
+| A todos | A todo el que recibió el mensaje inicial |
+| A quien no lo abrió | A quien no registró apertura |
+| A quien no hizo clic | A quien no pulsó ningún enlace |
+
+Decisiones que conviene conocer:
+
+- **La condición se evalúa contra el envío inicial**, no contra el seguimiento
+  anterior. Es lo que se espera al escribir «a quien no haya abierto» y evita
+  cadenas de condiciones imposibles de razonar.
+- **El seguimiento sale del mismo remitente** que el mensaje original a ese
+  contacto, y con las cabeceras `In-Reply-To` y `References` apuntando a él, de
+  modo que aparece dentro del mismo hilo. Con Gmail, además, se adjunta al hilo
+  nativo. Si el asunto se deja vacío, hereda el original con «Re:».
+- **La cola es la misma** que la del envío inicial: un seguimiento es otra fila
+  de `Recipient`, así que hereda el ritmo, la cuota, el seguimiento de aperturas
+  y las estadísticas sin lógica duplicada.
+- **Una baja cancela los seguimientos pendientes** de ese contacto en el acto.
+- Un paso que ya se envió **no se puede editar**: cambiar su contenido después
+  falsearía el histórico de lo que la gente recibió. Se desactiva y se crea otro.
+
+Una limitación que conviene tener presente: **no se detecta si alguien
+respondió**. Saberlo exigiría permiso de lectura sobre el buzón, y la
+plataforma sólo pide permiso de envío. Para captación en frío, apoyarse en «no
+hizo clic» es más seguro que en «no abrió», porque el píxel de apertura lo
+bloquean muchos clientes de correo.
 
 ---
 
@@ -264,7 +320,7 @@ motores sin más cambios.
 ```
 src/
   app/
-    (panel)/              Panel: resumen, campañas, contactos, listas, plantillas…
+    (panel)/              Panel: resumen, campañas, contactos, listas, remitentes…
     api/                  Route handlers (auth, contactos, campañas, cron, tracking)
     baja/[token]/         Página pública de cancelación de suscripción
     login/

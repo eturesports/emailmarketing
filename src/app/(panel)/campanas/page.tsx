@@ -26,7 +26,7 @@ export default async function CampaignsPage({ searchParams }: { searchParams: Pr
     where: status ? { status } : {},
     orderBy: { updatedAt: "desc" },
     include: {
-      sender: { select: { name: true, email: true } },
+      sender: { select: { label: true, fromEmail: true } },
       lists: { include: { list: { select: { name: true, color: true } } } },
     },
   });
@@ -103,7 +103,7 @@ export default async function CampaignsPage({ searchParams }: { searchParams: Pr
                       </p>
 
                       <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-faint">
-                        <span>{campaign.sender.name ?? campaign.sender.email}</span>
+                        <span>{campaign.sender.label}</span>
                         <span aria-hidden="true">·</span>
                         <span>
                           {campaign.scheduledAt && campaign.status === CAMPAIGN_STATUS.SCHEDULED

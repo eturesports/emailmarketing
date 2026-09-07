@@ -50,17 +50,17 @@ export async function PATCH(request: NextRequest, { params }: Params) {
     }
 
     if (senderIds) {
-      // Sólo pueden repartirse la campaña cuentas activas y habilitadas para
-      // enviar; si no se filtrase, una cuenta desactivada bloquearía su turno.
-      const usable = await prisma.user.findMany({
-        where: { id: { in: senderIds }, isActive: true, canSend: true },
+      // Sólo entran remitentes activos; si no se filtrase, uno desactivado
+      // bloquearía su turno en el reparto.
+      const usable = await prisma.sender.findMany({
+        where: { id: { in: senderIds }, isActive: true },
         select: { id: true },
       });
 
       await prisma.campaignSender.deleteMany({ where: { campaignId: id } });
       if (usable.length > 0) {
         await prisma.campaignSender.createMany({
-          data: usable.map((user) => ({ campaignId: id, userId: user.id })),
+          data: usable.map((sender) => ({ campaignId: id, senderId: sender.id })),
         });
       }
     }

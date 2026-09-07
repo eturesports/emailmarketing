@@ -36,39 +36,69 @@ model User {
   tokenExpiresAt DateTime?
   grantedScopes  String?
 
-  // Preferencias de envío
-  fromName      String?
-  replyTo       String?
   signatureHtml String?
-
-  /// Vía de envío: GMAIL_API (2.000/24 h) o SMTP_RELAY (10.000/24 h).
-  /// Ver lib/transport.ts y TRANSPORT_LIMITS en lib/constants.ts.
-  transport String @default("GMAIL_API")
-
-  /// Credenciales del relay SMTP de Workspace. La contraseña es una
-  /// "contraseña de aplicación" de Google y se guarda cifrada.
-  smtpUser     String?
-  smtpPassword String?
-
-  /// Si participa en el grupo de remitentes que se reparte los envíos.
-  canSend Boolean @default(true)
-
-  /// Tope propio, por debajo del límite de Google, para dejar margen al correo
-  /// del día a día de la cuenta. Se aplica sobre una ventana móvil de 24 h.
-  dailyQuota      Int @default(1500)
-  sendRatePerHour Int @default(300)
 
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   lastLoginAt DateTime?
 
-  campaigns      Campaign[]
-  imports        ImportJob[]
-  sendLogs       SendLog[]
-  campaignSlots  CampaignSender[]
-  sentRecipients Recipient[]      @relation("RecipientSender")
+  campaigns Campaign[]
+  imports   ImportJob[]
+  senders   Sender[]
 
   @@index([email])
+}
+
+/// Una identidad de envío: la dirección desde la que sale el correo y por qué
+/// vía sale.
+///
+/// Se separa de `User` a propósito. Un usuario es alguien que entra en la
+/// plataforma; un remitente es una dirección que envía, y no son lo mismo:
+///   - Una cuenta de Google puede tener varios alias «enviar como», y cada uno
+///     es un remitente distinto con su propia identidad.
+///   - Un remitente de Resend no necesita cuenta de Google: le basta con estar
+///     en un dominio verificado.
+///   - Una persona puede dejar el equipo sin que sus campañas pierdan el
+///     remitente con el que salieron.
+model Sender {
+  id String @id @default(cuid())
+
+  /// Nombre interno para distinguirlo en las listas ("Marketing", "Prensa").
+  label     String
+  fromEmail String  @unique
+  fromName  String?
+  replyTo   String?
+
+  /// GMAIL_API | SMTP_RELAY | RESEND (ver lib/constants.ts).
+  transport String @default("GMAIL_API")
+
+  /// Cuenta de Google que autoriza el envío. Obligatoria en GMAIL_API y
+  /// SMTP_RELAY, porque el token OAuth y la cuota son suyos; nula en RESEND.
+  userId String?
+  user   User?   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  /// Credenciales del relay SMTP. La contraseña es una «contraseña de
+  /// aplicación» de Google y se guarda cifrada.
+  smtpUser     String?
+  smtpPassword String?
+
+  isActive Boolean @default(true)
+
+  /// Tope propio, por debajo del límite del proveedor, para dejar margen al
+  /// correo del día a día de la cuenta.
+  dailyQuota      Int @default(1500)
+  sendRatePerHour Int @default(300)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  campaignsOwned  Campaign[]
+  campaignSlots   CampaignSender[]
+  recipients      Recipient[]
+  sequenceSenders SequenceStep[]
+
+  @@index([transport])
+  @@index([userId])
 }
 
 // ---------------------------------------------------------------------------
@@ -170,8 +200,14 @@ model Campaign {
   // DRAFT | SCHEDULED | SENDING | PAUSED | SENT | FAILED
   status String @default("DRAFT")
 
+  /// Remitente por defecto de la campaña. Si no se elige un grupo explícito,
+  /// es el único que envía.
   senderId String
-  sender   User   @relation(fields: [senderId], references: [id])
+  sender   Sender @relation(fields: [senderId], references: [id])
+
+  /// Quién la creó, para el histórico. No influye en el envío.
+  createdById String?
+  createdBy   User?   @relation(fields: [createdById], references: [id], onDelete: SetNull)
 
   templateId String?
   template   Template? @relation(fields: [templateId], references: [id], onDelete: SetNull)
@@ -204,6 +240,7 @@ model Campaign {
 
   lists      CampaignList[]
   senders    CampaignSender[]
+  steps      SequenceStep[]
   recipients Recipient[]
   events     Event[]
 
@@ -218,14 +255,14 @@ model Campaign {
 /// Google Workspace.
 model CampaignSender {
   campaignId String
-  userId     String
+  senderId   String
   addedAt    DateTime @default(now())
 
   campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
-  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  sender   Sender   @relation(fields: [senderId], references: [id], onDelete: Cascade)
 
-  @@id([campaignId, userId])
-  @@index([userId])
+  @@id([campaignId, senderId])
+  @@index([senderId])
 }
 
 model CampaignList {
@@ -238,12 +275,33 @@ model CampaignList {
   @@id([campaignId, listId])
 }
 
-/// Una fila por (campaña, contacto). Es a la vez la cola de envío y el registro
-/// de resultados/seguimiento de ese envío concreto.
+/// Un mensaje concreto dirigido a un contacto: el envío inicial de una campaña
+/// o uno de sus seguimientos. Es a la vez la cola de envío y el registro de
+/// resultados de ese mensaje.
 model Recipient {
   id         String @id @default(cuid())
   campaignId String
   contactId  String
+
+  /// Paso de la secuencia al que corresponde. Nulo en el envío inicial.
+  stepId String?
+  step   SequenceStep? @relation(fields: [stepId], references: [id], onDelete: Cascade)
+
+  /// Copia de `stepId` con un valor centinela para el envío inicial.
+  ///
+  /// Existe sólo para la restricción de unicidad: tanto SQLite como PostgreSQL
+  /// consideran distintos dos NULL en un índice único, así que una columna
+  /// nullable no impediría encolar dos veces el mismo envío inicial.
+  stepKey String @default("initial")
+
+  /// Envío inicial del que cuelga este seguimiento. Nulo en el propio inicial.
+  rootId String?
+  root   Recipient?  @relation("SeguimientoDe", fields: [rootId], references: [id], onDelete: Cascade)
+  follow Recipient[] @relation("SeguimientoDe")
+
+  /// Momento a partir del cual puede enviarse. Nulo = en cuanto le toque.
+  /// Los seguimientos lo usan para respetar su espera.
+  availableAt DateTime?
 
   // PENDING | SENDING | SENT | FAILED | SKIPPED
   status   String  @default("PENDING")
@@ -253,8 +311,9 @@ model Recipient {
   // Identificador opaco que viaja en el píxel y en los enlaces rastreados
   trackingId String @unique @default(cuid())
 
-  /// Cuenta que envió este correo. Con varios remitentes en una campaña, es lo
-  /// que permite atribuir cada envío a su cuota.
+  /// Remitente que envió este correo. Con varios en una campaña, es lo que
+  /// permite atribuir cada envío a su cuota — y lo que hace que los
+  /// seguimientos salgan del mismo remitente que el primer mensaje.
   senderId String?
 
   gmailMessageId String?
@@ -270,12 +329,58 @@ model Recipient {
 
   campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
   contact  Contact  @relation(fields: [contactId], references: [id], onDelete: Cascade)
-  sender   User?    @relation("RecipientSender", fields: [senderId], references: [id], onDelete: SetNull)
+  sender   Sender?  @relation(fields: [senderId], references: [id], onDelete: SetNull)
   events   Event[]
 
-  @@unique([campaignId, contactId])
+  @@unique([campaignId, contactId, stepKey])
   @@index([campaignId, status])
   @@index([contactId])
+  @@index([stepId])
+  @@index([rootId])
+}
+
+// ---------------------------------------------------------------------------
+// Secuencias de seguimiento
+// ---------------------------------------------------------------------------
+
+/// Un correo de seguimiento que sale automáticamente unos días después del
+/// envío inicial, sólo a quien cumpla la condición.
+///
+/// La condición se evalúa siempre contra el **envío inicial**, no contra el
+/// seguimiento anterior: es lo que la gente espera al escribir «a quien no haya
+/// abierto», y evita cadenas de condiciones difíciles de razonar.
+model SequenceStep {
+  id         String @id @default(cuid())
+  campaignId String
+
+  /// Orden dentro de la secuencia, empezando en 1.
+  position Int
+
+  /// Espera desde el envío inicial, en horas.
+  delayHours Int @default(72)
+
+  /// ALWAYS | NO_OPEN | NO_CLICK (ver SEQUENCE_CONDITION en lib/constants.ts).
+  condition String @default("NO_OPEN")
+
+  /// Asunto propio; vacío = responder en el mismo hilo conservando el asunto.
+  subject String @default("")
+  html    String @default("")
+
+  /// Remitente propio. Nulo = el mismo que envió el mensaje inicial a ese
+  /// contacto, que es lo que mantiene la conversación coherente.
+  senderId String?
+  sender   Sender? @relation(fields: [senderId], references: [id], onDelete: SetNull)
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  campaign   Campaign    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  recipients Recipient[]
+
+  @@unique([campaignId, position])
+  @@index([campaignId])
 }
 
 // ---------------------------------------------------------------------------
@@ -307,23 +412,26 @@ model Event {
   @@index([campaignId, type])
 }
 
-/// Consumo de cuota por cuenta, en cubos de una hora (UTC).
+/// Consumo de cuota en cubos de una hora (UTC).
 ///
-/// Google aplica sus límites sobre una **ventana móvil de 24 horas**, no sobre
-/// el día natural: si se envían 2.000 correos a las 23:00, a medianoche no se
-/// libera nada. Guardar cubos horarios permite sumar exactamente las últimas
-/// 24 horas, y sobrevive al borrado de la campaña que originó los envíos.
+/// Los proveedores aplican sus límites sobre una **ventana móvil de 24 horas**,
+/// no sobre el día natural: si se envían 2.000 correos a las 23:00, a medianoche
+/// no se libera nada. Guardar cubos horarios permite sumar exactamente las
+/// últimas 24 horas y sobrevive al borrado de lo que originó los envíos.
+///
+/// La clave no es el remitente sino el **sujeto de la cuota**, porque no
+/// coinciden: dos alias de la misma cuenta de Google son dos remitentes pero
+/// comparten un único límite de 2.000, y todos los remitentes de Resend comparten
+/// el plan del equipo. Ver `quotaKeyFor` en lib/quota.ts.
 model SendLog {
-  id     String @id @default(cuid())
-  userId String
-  hour   String // YYYY-MM-DDTHH en UTC
+  id       String @id @default(cuid())
+  quotaKey String
+  hour     String // YYYY-MM-DDTHH en UTC
 
   count Int @default(0)
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@unique([userId, hour])
-  @@index([userId, hour])
+  @@unique([quotaKey, hour])
+  @@index([quotaKey, hour])
 }
 
 model ImportJob {

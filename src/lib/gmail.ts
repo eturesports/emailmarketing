@@ -30,6 +30,18 @@ export type BuildMessageOptions = {
   listUnsubscribeUrl?: string | null;
   attachments?: EmailAttachment[];
   headers?: Record<string, string>;
+
+  /**
+   * Identificador propio del mensaje. Se genera de forma determinista a partir
+   * del envío (ver `messageIdFor`), de modo que un seguimiento puede
+   * referenciarlo sin necesidad de guardarlo en base de datos.
+   */
+  messageId?: string;
+  /** Message-ID del mensaje al que responde este seguimiento. */
+  inReplyTo?: string | null;
+
+  /** Hilo de Gmail al que engancharlo. Sólo lo usa el transporte GMAIL_API. */
+  gmailThreadId?: string | null;
 };
 
 /** Codifica una cabecera con caracteres no ASCII según RFC 2047. */
@@ -72,6 +84,18 @@ export function buildMimeMessage(options: BuildMessageOptions): string {
 
   if (options.replyTo) {
     headers.push(`Reply-To: ${sanitizeHeader(options.replyTo)}`);
+  }
+
+  if (options.messageId) {
+    headers.push(`Message-ID: ${sanitizeHeader(options.messageId)}`);
+  }
+
+  if (options.inReplyTo) {
+    // Ambas cabeceras: In-Reply-To para el cliente de correo y References para
+    // que el hilo se mantenga aunque haya varios mensajes intermedios.
+    const parent = sanitizeHeader(options.inReplyTo);
+    headers.push(`In-Reply-To: ${parent}`);
+    headers.push(`References: ${parent}`);
   }
 
   if (options.listUnsubscribeUrl) {
@@ -139,12 +163,21 @@ export type SendResult = {
 };
 
 /** Envía un mensaje ya construido a través de la API de Gmail. */
-export async function sendMimeMessage(auth: OAuth2Client, mime: string): Promise<SendResult> {
+export async function sendMimeMessage(
+  auth: OAuth2Client,
+  mime: string,
+  threadId?: string | null,
+): Promise<SendResult> {
   const gmail = google.gmail({ version: "v1", auth });
 
   const { data } = await gmail.users.messages.send({
     userId: "me",
-    requestBody: { raw: Buffer.from(mime, "utf8").toString("base64url") },
+    requestBody: {
+      raw: Buffer.from(mime, "utf8").toString("base64url"),
+      // Con threadId, Gmail agrupa el seguimiento en la misma conversación que
+      // el mensaje original, que es como lo verá el destinatario.
+      ...(threadId ? { threadId } : {}),
+    },
   });
 
   return {
@@ -154,7 +187,7 @@ export async function sendMimeMessage(auth: OAuth2Client, mime: string): Promise
 }
 
 export async function sendEmail(auth: OAuth2Client, options: BuildMessageOptions): Promise<SendResult> {
-  return sendMimeMessage(auth, buildMimeMessage(options));
+  return sendMimeMessage(auth, buildMimeMessage(options), options.gmailThreadId);
 }
 
 /**

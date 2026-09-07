@@ -32,7 +32,7 @@ export default async function CampaignDetailPage({ params }: { params: Promise<{
 
   const campaign = await prisma.campaign.findUnique({
     where: { id },
-    include: { lists: true, senders: true, sender: { select: { email: true, name: true } } },
+    include: { lists: true, senders: true, steps: { orderBy: { position: "asc" } }, sender: true },
   });
   if (!campaign) notFound();
 
@@ -74,7 +74,7 @@ export default async function CampaignDetailPage({ params }: { params: Promise<{
         orderBy: { name: "asc" },
         include: { _count: { select: { memberships: true } } },
       }),
-      prisma.user.findMany({ where: { isActive: true, canSend: true }, orderBy: { email: "asc" } }),
+      prisma.sender.findMany({ where: { isActive: true }, orderBy: { label: "asc" }, include: { user: true } }),
       // Muestra pequeña sólo para ofrecer los campos personalizados como
       // botones de inserción en el editor.
       prisma.contact.findMany({ select: { customFields: true }, take: 50, orderBy: { updatedAt: "desc" } }),
@@ -83,13 +83,13 @@ export default async function CampaignDetailPage({ params }: { params: Promise<{
     // Capacidad restante de cada cuenta en la ventana móvil de 24 h, para poder
     // mostrar en el editor cuántos correos caben ahora mismo.
     const capacity = await getCapacity(senderAccounts);
-    const senders = capacity.map((entry) => {
-      const readiness = transportReadiness(entry.user);
-      const transport = entry.user.transport as Transport;
+    const senders = capacity.map((entry, index) => {
+      const readiness = transportReadiness(senderAccounts[index]);
+      const transport = entry.sender.transport as Transport;
       return {
-        id: entry.user.id,
-        email: entry.user.email,
-        name: entry.user.name,
+        id: entry.sender.id,
+        email: entry.sender.fromEmail,
+        name: entry.sender.label,
         transportLabel: TRANSPORT_LIMITS[transport]?.label ?? transport,
         used: entry.used,
         limit: entry.limit,
@@ -122,7 +122,7 @@ export default async function CampaignDetailPage({ params }: { params: Promise<{
             status: campaign.status,
             scheduledAt: campaign.scheduledAt ? toLocalInputValue(campaign.scheduledAt) : null,
             listIds: campaign.lists.map((entry) => entry.listId),
-            senderIds: campaign.senders.map((entry) => entry.userId),
+            senderIds: campaign.senders.map((entry) => entry.senderId),
             totalRecipients: campaign.totalRecipients,
           }}
           lists={lists.map((list) => ({
@@ -132,8 +132,18 @@ export default async function CampaignDetailPage({ params }: { params: Promise<{
             contactCount: list._count.memberships,
           }))}
           senders={senders}
+          steps={campaign.steps.map((step) => ({
+            id: step.id,
+            position: step.position,
+            delayHours: step.delayHours,
+            condition: step.condition,
+            subject: step.subject,
+            html: step.html,
+            senderId: step.senderId,
+            isActive: step.isActive,
+          }))}
           customFieldKeys={customFieldKeys}
-          senderEmail={campaign.sender.email}
+          senderEmail={campaign.sender.fromEmail}
         />
       </>
     );

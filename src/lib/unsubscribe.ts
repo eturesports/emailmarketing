@@ -26,9 +26,11 @@ export async function unsubscribeByToken(token: string, campaignId?: string | nu
     data: { status: CONTACT_STATUS.UNSUBSCRIBED, unsubscribedAt: new Date() },
   });
 
+  // Se busca el envío inicial de esa campaña: es el que representa la relación
+  // del contacto con ella, y del que cuelgan los seguimientos.
   const recipient = campaignId
     ? await prisma.recipient.findUnique({
-        where: { campaignId_contactId: { campaignId, contactId: contact.id } },
+        where: { campaignId_contactId_stepKey: { campaignId, contactId: contact.id, stepKey: "initial" } },
       })
     : null;
 
@@ -36,6 +38,13 @@ export async function unsubscribeByToken(token: string, campaignId?: string | nu
     await prisma.recipient.update({
       where: { id: recipient.id },
       data: { unsubscribedAt: new Date() },
+    });
+
+    // Cancela los seguimientos que aún no han salido: seguir escribiendo a
+    // quien acaba de darse de baja es justo lo que no debe pasar.
+    await prisma.recipient.updateMany({
+      where: { rootId: recipient.id, status: "PENDING" },
+      data: { status: "SKIPPED", error: "El contacto se dio de baja antes del seguimiento." },
     });
     await prisma.campaign.update({
       where: { id: campaignId! },

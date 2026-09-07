@@ -64,6 +64,45 @@ export const EVENT_TYPE = {
 } as const;
 export type EventType = (typeof EVENT_TYPE)[keyof typeof EVENT_TYPE];
 
+// ---------------------------------------------------------------------------
+// Secuencias de seguimiento
+// ---------------------------------------------------------------------------
+
+export const SEQUENCE_CONDITION = {
+  /** A todo el que recibió el mensaje inicial. */
+  ALWAYS: "ALWAYS",
+  /** Sólo a quien no lo abrió. */
+  NO_OPEN: "NO_OPEN",
+  /** Sólo a quien no pulsó ningún enlace. */
+  NO_CLICK: "NO_CLICK",
+} as const;
+export type SequenceCondition = (typeof SEQUENCE_CONDITION)[keyof typeof SEQUENCE_CONDITION];
+
+export const SEQUENCE_CONDITION_LABELS: Record<SequenceCondition, string> = {
+  ALWAYS: "A todos",
+  NO_OPEN: "A quien no lo abrió",
+  NO_CLICK: "A quien no hizo clic",
+};
+
+export const SEQUENCE_CONDITION_HINTS: Record<SequenceCondition, string> = {
+  ALWAYS: "Se envía a todo el que recibió el mensaje inicial.",
+  NO_OPEN: "Ojo: las aperturas dependen de un píxel que muchos clientes bloquean, así que algunos que sí lo leyeron contarán como no abierto.",
+  NO_CLICK: "Más fiable que la apertura, porque un clic sí deja rastro seguro.",
+};
+
+/** Esperas habituales para un seguimiento, en horas. */
+export const SEQUENCE_DELAYS = [
+  { hours: 24, label: "1 día después" },
+  { hours: 48, label: "2 días después" },
+  { hours: 72, label: "3 días después" },
+  { hours: 120, label: "5 días después" },
+  { hours: 168, label: "1 semana después" },
+  { hours: 336, label: "2 semanas después" },
+] as const;
+
+/** Tope de pasos por campaña, para que una secuencia no se vuelva spam. */
+export const MAX_SEQUENCE_STEPS = 5;
+
 export const ROLE = {
   OWNER: "OWNER",
   ADMIN: "ADMIN",

@@ -5,6 +5,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import { Alert, Button, Card, CardHeader, Checkbox, Input, Select, Spinner } from "./ui";
 import { IconEye, IconSend, IconTrash } from "./icons";
 import { MERGE_FIELDS } from "@/lib/constants";
+import { SequenceEditor, type SequenceStepView } from "./sequence-editor";
 import { formatNumber } from "@/lib/utils";
 
 export type EditableCampaign = {
@@ -40,18 +41,20 @@ export type SenderOption = {
   reason: string | null;
 };
 
-type Tab = "contenido" | "destinatarios" | "remitentes" | "ajustes";
+type Tab = "contenido" | "destinatarios" | "secuencia" | "remitentes" | "ajustes";
 
 export function CampaignEditor({
   campaign: initial,
   lists,
   senders,
+  steps,
   customFieldKeys,
   senderEmail,
 }: {
   campaign: EditableCampaign;
   lists: ListOption[];
   senders: SenderOption[];
+  steps: SequenceStepView[];
   customFieldKeys: string[];
   senderEmail: string;
 }) {
@@ -226,7 +229,7 @@ export function CampaignEditor({
     <div className="grid gap-4 lg:grid-cols-3">
       <div className="space-y-4 lg:col-span-2">
         <nav className="flex gap-1 rounded-lg border border-line bg-surface p-1" role="tablist">
-          {(["contenido", "destinatarios", "remitentes", "ajustes"] as Tab[]).map((value) => (
+          {(["contenido", "destinatarios", "secuencia", "remitentes", "ajustes"] as Tab[]).map((value) => (
             <button
               key={value}
               type="button"
@@ -389,6 +392,16 @@ export function CampaignEditor({
               </span>
             </div>
           </Card>
+        ) : null}
+
+        {tab === "secuencia" ? (
+          <SequenceEditor
+            campaignId={campaign.id}
+            steps={steps}
+            senders={senders.map((sender) => ({ id: sender.id, name: sender.name ?? sender.email, email: sender.email }))}
+            subject={campaign.subject}
+            totalRecipients={campaign.totalRecipients || reach}
+          />
         ) : null}
 
         {tab === "remitentes" ? (
@@ -580,6 +593,16 @@ export function CampaignEditor({
                 <dt className="text-ink-muted">Capacidad ahora (24 h)</dt>
                 <dd className="tabular-nums font-medium">{formatNumber(poolRemaining)}</dd>
               </div>
+              {steps.filter((step) => step.isActive).length > 0 ? (
+                <div className="flex justify-between">
+                  <dt className="text-ink-muted">Seguimientos</dt>
+                  <dd className="tabular-nums font-medium">
+                    <button type="button" onClick={() => setTab("secuencia")} className="text-brand hover:underline">
+                      {steps.filter((step) => step.isActive).length}
+                    </button>
+                  </dd>
+                </div>
+              ) : null}
               <div className="flex justify-between">
                 <dt className="text-ink-muted">Cuentas remitentes</dt>
                 <dd className="tabular-nums font-medium">

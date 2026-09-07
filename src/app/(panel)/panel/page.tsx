@@ -2,8 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
-import { getSentInWindow, effectiveLimit } from "@/lib/quota";
-import { TRANSPORT_LIMITS, type Transport } from "@/lib/constants";
+import { aggregateCapacity, getCapacity } from "@/lib/quota";
 import { CAMPAIGN_STATUS, CAMPAIGN_STATUS_LABELS, CONTACT_STATUS, type CampaignStatus } from "@/lib/constants";
 import { formatNumber, formatPercent, formatRelative, rate } from "@/lib/utils";
 import {
@@ -30,7 +29,6 @@ export default async function DashboardPage() {
     subscribedContacts,
     unsubscribedContacts,
     totalLists,
-    sentInWindow,
     senderPool,
     recentCampaigns,
     activeCampaigns,
@@ -40,12 +38,11 @@ export default async function DashboardPage() {
     prisma.contact.count({ where: { status: CONTACT_STATUS.SUBSCRIBED } }),
     prisma.contact.count({ where: { status: CONTACT_STATUS.UNSUBSCRIBED } }),
     prisma.contactList.count(),
-    getSentInWindow(user.id),
-    prisma.user.findMany({ where: { isActive: true, canSend: true }, select: { transport: true, dailyQuota: true } }),
+    prisma.sender.findMany({ where: { isActive: true } }),
     prisma.campaign.findMany({
       orderBy: { updatedAt: "desc" },
       take: 6,
-      include: { sender: { select: { name: true, email: true } } },
+      include: { sender: { select: { label: true, fromEmail: true } } },
     }),
     prisma.campaign.findMany({
       where: { status: { in: [CAMPAIGN_STATUS.SENDING, CAMPAIGN_STATUS.SCHEDULED] } },
@@ -57,13 +54,10 @@ export default async function DashboardPage() {
     }),
   ]);
 
-  // Techo conjunto del dominio: Google limita por cuenta, así que la capacidad
-  // real de una campaña grande es la suma de todas las cuentas del grupo.
-  const poolCeiling = senderPool.reduce(
-    (total, member) =>
-      total + Math.min(TRANSPORT_LIMITS[member.transport as Transport]?.messagesPer24h ?? 0, member.dailyQuota),
-    0,
-  );
+  // Techo conjunto: los proveedores limitan por cuenta, así que la capacidad
+  // real de una campaña grande es la suma de todos los remitentes.
+  const capacity = await getCapacity(senderPool);
+  const { used: poolUsed, limit: poolCeiling } = aggregateCapacity(capacity);
 
   const totalSent = aggregate._sum.sentCount ?? 0;
   const totalOpens = aggregate._sum.openCount ?? 0;
@@ -194,7 +188,7 @@ export default async function DashboardPage() {
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium text-ink">{campaign.name}</p>
                       <p className="mt-0.5 truncate text-xs text-ink-faint">
-                        {campaign.sender.name ?? campaign.sender.email} · {formatRelative(campaign.updatedAt)}
+                        {campaign.sender.label} · {formatRelative(campaign.updatedAt)}
                       </p>
                     </div>
                     <div className="flex shrink-0 items-center gap-3">
@@ -220,33 +214,33 @@ export default async function DashboardPage() {
           <Card className="p-5">
             <h3 className="text-sm font-semibold">Capacidad de envío</h3>
             <p className="mt-1 text-xs text-ink-muted">
-              Google limita por cuenta, no por dominio: el techo es la suma de las cuentas del grupo de remitentes.
+              Los proveedores limitan por cuenta, no por dominio: el techo es la suma de todos los remitentes.
             </p>
 
             <p className="mt-4 text-2xl font-semibold tabular-nums text-brand">{formatNumber(poolCeiling)}</p>
             <p className="text-xs text-ink-faint">
-              correos cada 24 h entre {senderPool.length} cuenta(s)
+              correos cada 24 h entre {senderPool.length} remitente(s)
             </p>
 
             <div className="mt-4 border-t border-line pt-4">
               <div className="flex items-baseline justify-between text-sm">
-                <span className="text-xs text-ink-muted">Tu cuenta</span>
+                <span className="text-xs text-ink-muted">Consumido</span>
                 <span className="text-xs tabular-nums text-ink-faint">
-                  {formatNumber(sentInWindow)} de {formatNumber(effectiveLimit(user))}
+                  {formatNumber(poolUsed)} de {formatNumber(poolCeiling)}
                 </span>
               </div>
               <div className="mt-2">
                 <ProgressBar
-                  value={sentInWindow}
-                  max={effectiveLimit(user)}
-                  tone={sentInWindow / Math.max(1, effectiveLimit(user)) > 0.85 ? "warning" : "brand"}
+                  value={poolUsed}
+                  max={poolCeiling}
+                  tone={poolUsed / Math.max(1, poolCeiling) > 0.85 ? "warning" : "brand"}
                   label="Cuota consumida en las últimas 24 h"
                 />
               </div>
               <p className="mt-2 text-xs text-ink-faint">
-                Ventana móvil de 24 h, no día natural. Súbelo con el relay SMTP o sumando cuentas en{" "}
-                <Link href="/ajustes" className="text-brand hover:underline">
-                  Ajustes
+                Ventana móvil de 24 h, no día natural. Súbelo añadiendo remitentes en{" "}
+                <Link href="/remitentes" className="text-brand hover:underline">
+                  Remitentes
                 </Link>
                 .
               </p>
