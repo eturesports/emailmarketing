@@ -1,7 +1,8 @@
 import type { User } from "@prisma/client";
 import { prisma } from "./db";
-import { QUOTA_WINDOW_HOURS } from "./constants";
-import { transportLimit } from "./transport";
+import { QUOTA_WINDOW_HOURS, TRANSPORT } from "./constants";
+import { transportLimit, transportOf } from "./transport";
+import { getResendDailyLimit } from "./settings";
 
 /**
  * Contabilidad de cuota.
@@ -56,17 +57,29 @@ export async function getSentInWindowFor(userIds: string[]): Promise<Map<string,
 }
 
 /**
- * Techo efectivo de una cuenta: el menor entre lo que permite Google para su
- * transporte y el tope propio que haya fijado el usuario para dejar margen a su
- * correo del día a día.
+ * Techo efectivo de una cuenta: el menor entre lo que permite el proveedor para
+ * su transporte y el tope propio que haya fijado el usuario para dejar margen a
+ * su correo del día a día.
+ *
+ * `resendLimit` es el tope contratado en Resend, que vive en los ajustes de la
+ * organización. Se pasa como parámetro para que esta función siga siendo
+ * síncrona y poder usarla al pintar; `resolveLimit` es la versión que lo lee.
  */
-export function effectiveLimit(user: Pick<User, "transport" | "dailyQuota">): number {
-  return Math.min(transportLimit(user), user.dailyQuota);
+export function effectiveLimit(user: Pick<User, "transport" | "dailyQuota">, resendLimit?: number): number {
+  const ceiling =
+    transportOf(user) === TRANSPORT.RESEND && resendLimit !== undefined ? resendLimit : transportLimit(user);
+  return Math.min(ceiling, user.dailyQuota);
+}
+
+/** Igual que `effectiveLimit`, leyendo el tope de Resend de los ajustes. */
+export async function resolveLimit(user: Pick<User, "transport" | "dailyQuota">): Promise<number> {
+  if (transportOf(user) !== TRANSPORT.RESEND) return effectiveLimit(user);
+  return effectiveLimit(user, await getResendDailyLimit());
 }
 
 /** Envíos que le quedan a una cuenta en la ventana actual. */
 export async function getRemainingQuota(user: User): Promise<number> {
-  return Math.max(0, effectiveLimit(user) - (await getSentInWindow(user.id)));
+  return Math.max(0, (await resolveLimit(user)) - (await getSentInWindow(user.id)));
 }
 
 /** Anota un envío en el cubo horario correspondiente. */
@@ -98,8 +111,12 @@ export type SenderCapacity = {
 export async function getCapacity(users: User[]): Promise<SenderCapacity[]> {
   const used = await getSentInWindowFor(users.map((user) => user.id));
 
+  // El tope de Resend se lee una sola vez, y sólo si alguna cuenta lo usa.
+  const needsResend = users.some((user) => transportOf(user) === TRANSPORT.RESEND);
+  const resendLimit = needsResend ? await getResendDailyLimit() : undefined;
+
   return users.map((user) => {
-    const limit = effectiveLimit(user);
+    const limit = effectiveLimit(user, resendLimit);
     const consumed = used.get(user.id) ?? 0;
     return { user, used: consumed, limit, remaining: Math.max(0, limit - consumed) };
   });

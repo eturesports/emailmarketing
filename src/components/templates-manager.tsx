@@ -139,7 +139,7 @@ const STARTER_HTML = `<div style="font-family:Arial,Helvetica,sans-serif;font-si
   <h1 style="font-size:22px;margin:0 0 16px;">Hola {{firstName | equipo}}</h1>
   <p>Escribe aquí el contenido de tu correo.</p>
   <p style="margin:24px 0;">
-    <a href="https://eture.es" style="display:inline-block;background:#0891b2;color:#ffffff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:bold;">Ver más</a>
+    <a href="https://eturesports.com" style="display:inline-block;background:#0891b2;color:#ffffff;text-decoration:none;padding:12px 22px;border-radius:8px;font-weight:bold;">Ver más</a>
   </p>
   <p style="color:#6b7280;font-size:13px;">Un saludo,<br />El equipo de Eture Esports</p>
 </div>`;

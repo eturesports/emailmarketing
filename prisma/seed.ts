@@ -41,7 +41,7 @@ const TEMPLATES = [
     <p style="margin:0 0 24px;color:#374151;">Fechas, horarios y dónde seguirlos.</p>
 
     <p style="margin:0 0 28px;">
-      <a href="https://eture.es" style="display:inline-block;background:#0891b2;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:bold;">Ver el calendario</a>
+      <a href="https://eturesports.com" style="display:inline-block;background:#0891b2;color:#ffffff;text-decoration:none;padding:12px 24px;border-radius:8px;font-weight:bold;">Ver el calendario</a>
     </p>
 
     <p style="margin:0;color:#6b7280;font-size:13px;">Un saludo,<br />El equipo de Eture Esports</p>
@@ -67,7 +67,7 @@ const TEMPLATES = [
 
   <p style="margin:24px 0 0;color:#6b7280;font-size:13px;">
     Material gráfico y ampliación de información:<br />
-    <a href="mailto:prensa@eture.es" style="color:#0369a1;">prensa@eture.es</a>
+    <a href="mailto:prensa@eturesports.com" style="color:#0369a1;">prensa@eturesports.com</a>
   </p>
 </div>`,
   },

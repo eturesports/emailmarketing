@@ -506,7 +506,7 @@ export function CampaignEditor({
                     type="email"
                     value={campaign.replyTo ?? ""}
                     onChange={(event) => update("replyTo", event.target.value)}
-                    placeholder="marketing@eture.es"
+                    placeholder="marketing@eturesports.com"
                   />
                 </div>
               </div>

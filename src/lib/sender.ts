@@ -3,6 +3,7 @@ import { prisma } from "./db";
 import { CAMPAIGN_STATUS, CONTACT_STATUS, EVENT_TYPE, RECIPIENT_STATUS } from "./constants";
 import { GoogleAuthError, describeError } from "./google";
 import { classifyGmailError } from "./gmail";
+import { ResendError, classifyResendError } from "./resend";
 import { buildMergeContext, htmlToPlainText, renderTemplate } from "./merge";
 import { oneClickUnsubscribeUrl, prepareHtmlForSend } from "./tracking";
 import { openTransport, transportReadiness, type SendContext } from "./transport";
@@ -363,19 +364,24 @@ export async function processCampaign(campaignId: string, batchSize = env.cronBa
       const rendered = renderForContact(campaign, contact, recipient.trackingId, fromName);
 
       try {
-        const result = await slot.slot.context.send({
-          from: user.email,
-          fromName,
-          to: contact.email,
-          toName: [contact.firstName, contact.lastName].filter(Boolean).join(" ") || null,
-          subject: rendered.subject,
-          html: rendered.html,
-          text: rendered.text,
-          replyTo,
-          listUnsubscribeUrl: campaign.includeUnsubscribe
-            ? oneClickUnsubscribeUrl(contact.unsubscribeToken, campaign.id)
-            : null,
-        });
+        const result = await slot.slot.context.send(
+          {
+            from: user.email,
+            fromName,
+            to: contact.email,
+            toName: [contact.firstName, contact.lastName].filter(Boolean).join(" ") || null,
+            subject: rendered.subject,
+            html: rendered.html,
+            text: rendered.text,
+            replyTo,
+            listUnsubscribeUrl: campaign.includeUnsubscribe
+              ? oneClickUnsubscribeUrl(contact.unsubscribeToken, campaign.id)
+              : null,
+          },
+          // Clave estable por (campaña, contacto): si un fallo de red obliga a
+          // reintentar, Resend reconoce el envío y no lo duplica.
+          recipient.id,
+        );
 
         await prisma.$transaction([
           prisma.recipient.update({
@@ -402,7 +408,9 @@ export async function processCampaign(campaignId: string, batchSize = env.cronBa
         slot.slot.sent += 1;
         sent += 1;
       } catch (error) {
-        const classified = classifyGmailError(error);
+        // Cada proveedor devuelve los errores a su manera; la cola necesita la
+        // misma respuesta a la misma pregunta: ¿merece la pena reintentar?
+        const classified = error instanceof ResendError ? classifyResendError(error) : classifyGmailError(error);
         const attempts = recipient.attempts + 1;
         const giveUp = !classified.retryable || attempts >= MAX_ATTEMPTS;
 

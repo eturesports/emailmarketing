@@ -4,7 +4,8 @@ import { isAdmin, requireUser } from "@/lib/auth";
 import { Card, CardHeader, PageHeader } from "@/components/ui";
 import { SettingsForm } from "@/components/settings-form";
 import { env } from "@/lib/env";
-import { getSentInWindow } from "@/lib/quota";
+import { getSentInWindow, effectiveLimit } from "@/lib/quota";
+import { getResendConfig } from "@/lib/settings";
 import { TRANSPORT_LIMITS, type Transport } from "@/lib/constants";
 import { formatNumber } from "@/lib/utils";
 
@@ -15,17 +16,17 @@ export default async function SettingsPage() {
   const user = await requireUser();
   const admin = isAdmin(user);
 
-  const [team, usedInWindow, pool] = await Promise.all([
+  const [team, usedInWindow, pool, resendConfig] = await Promise.all([
     admin ? prisma.user.findMany({ orderBy: [{ role: "asc" }, { email: "asc" }] }) : Promise.resolve([]),
     getSentInWindow(user.id),
     prisma.user.findMany({ where: { isActive: true, canSend: true }, select: { transport: true, dailyQuota: true } }),
+    getResendConfig(),
   ]);
 
   // Techo conjunto del dominio: la suma de lo que permite cada cuenta prestada
   // al grupo de remitentes. Es la cifra que de verdad limita una campaña grande.
   const poolCeiling = pool.reduce(
-    (total, member) =>
-      total + Math.min(TRANSPORT_LIMITS[member.transport as Transport]?.messagesPer24h ?? 0, member.dailyQuota),
+    (total, member) => total + effectiveLimit(member, resendConfig.dailyLimit),
     0,
   );
 
@@ -57,6 +58,8 @@ export default async function SettingsPage() {
         }))}
         isAdmin={admin}
         currentUserId={user.id}
+        resendConfig={resendConfig}
+        appUrl={env.appUrl}
       />
 
       <Card className="mt-4">

@@ -30,16 +30,26 @@ export type TeamMember = {
   lastLoginAt: string | null;
 };
 
+export type ResendConfigView = {
+  configured: boolean;
+  dailyLimit: number;
+  hasWebhookSecret: boolean;
+};
+
 export function SettingsForm({
   user,
   team,
   isAdmin,
   currentUserId,
+  resendConfig,
+  appUrl,
 }: {
   user: SettingsUser;
   team: TeamMember[];
   isAdmin: boolean;
   currentUserId: string;
+  resendConfig: ResendConfigView;
+  appUrl: string;
 }) {
   const router = useRouter();
 
@@ -47,6 +57,12 @@ export function SettingsForm({
   const [smtpPassword, setSmtpPassword] = useState("");
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ tone: "success" | "danger"; text: string } | null>(null);
+
+  const [resend, setResend] = useState(resendConfig);
+  const [resendKey, setResendKey] = useState("");
+  const [resendWebhook, setResendWebhook] = useState("");
+  const [savingResend, setSavingResend] = useState(false);
+  const [resendMessage, setResendMessage] = useState<{ tone: "success" | "danger"; text: string } | null>(null);
 
   const [aliases, setAliases] = useState<Array<{ email: string; displayName: string; isDefault: boolean }> | null>(
     null,
@@ -108,6 +124,45 @@ export function SettingsForm({
     setAliases(payload.addresses ?? []);
   }
 
+  async function saveResend(event: React.FormEvent) {
+    event.preventDefault();
+    setSavingResend(true);
+    setResendMessage(null);
+
+    const response = await fetch("/api/settings/resend", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        dailyLimit: resend.dailyLimit,
+        ...(resendKey.trim() ? { apiKey: resendKey.trim() } : {}),
+        ...(resendWebhook.trim() ? { webhookSecret: resendWebhook.trim() } : {}),
+      }),
+    });
+
+    const payload = await response.json().catch(() => ({}));
+    setSavingResend(false);
+
+    if (!response.ok) {
+      setResendMessage({ tone: "danger", text: payload.error ?? "No se ha podido guardar la configuración." });
+      return;
+    }
+
+    setResend({
+      configured: payload.configured,
+      dailyLimit: payload.dailyLimit,
+      hasWebhookSecret: payload.hasWebhookSecret,
+    });
+    setResendKey("");
+    setResendWebhook("");
+    setResendMessage({
+      tone: "success",
+      text: payload.verifiedDomains?.length
+        ? `Guardado. Dominios verificados en Resend: ${payload.verifiedDomains.join(", ")}.`
+        : "Configuración guardada.",
+    });
+    router.refresh();
+  }
+
   async function updateMember(id: string, changes: { role?: string; isActive?: boolean }) {
     const response = await fetch("/api/settings", {
       method: "POST",
@@ -152,7 +207,7 @@ export function SettingsForm({
                 type="email"
                 value={form.replyTo ?? ""}
                 onChange={(event) => update("replyTo", event.target.value)}
-                placeholder="marketing@eture.es"
+                placeholder="marketing@eturesports.com"
               />
               <p className="mt-1 text-xs text-ink-faint">
                 Déjalo vacío para recibir las respuestas en tu propio buzón.
@@ -192,6 +247,24 @@ export function SettingsForm({
                 );
               })}
             </div>
+
+            {form.transport === TRANSPORT.RESEND ? (
+              <div className="rounded-lg border border-line bg-surface-2 p-4">
+                {resendConfig.configured ? (
+                  <p className="text-xs text-ink-muted">
+                    Esta cuenta enviará por Resend desde <strong className="text-ink">{user.email}</strong>. La
+                    dirección debe pertenecer a un dominio verificado en Resend.
+                  </p>
+                ) : (
+                  <p className="text-xs text-warning">
+                    Resend todavía no está configurado.{" "}
+                    {isAdmin
+                      ? "Añade la clave de API más abajo, en la tarjeta «Resend»."
+                      : "Pide a un administrador que lo configure."}
+                  </p>
+                )}
+              </div>
+            ) : null}
 
             {form.transport === TRANSPORT.SMTP_RELAY ? (
               <div className="space-y-3 rounded-lg border border-line bg-surface-2 p-4">
@@ -372,6 +445,100 @@ export function SettingsForm({
           )}
         </div>
       </Card>
+
+      {isAdmin ? (
+        <Card>
+          <CardHeader
+            title="Resend"
+            description="Salida alternativa a Google para volúmenes que Workspace no cubre. Configuración común a todo el equipo."
+            action={
+              resend.configured ? (
+                <Badge tone="success">
+                  <IconCheck size={13} />
+                  Conectado
+                </Badge>
+              ) : (
+                <Badge tone="neutral">Sin configurar</Badge>
+              )
+            }
+          />
+
+          <form onSubmit={saveResend} className="space-y-4 p-5">
+            <p className="text-xs text-ink-muted">
+              Resend no limita por dirección: el techo lo marca el plan contratado. Antes de usarlo hay que verificar{" "}
+              <strong className="text-ink">eturesports.com</strong> en Resend (SPF y DKIM); los correos dejan de salir
+              de un buzón de Gmail y no quedan en «Enviados».
+            </p>
+
+            <div className="grid gap-3 sm:grid-cols-2">
+              <div>
+                <label className="label" htmlFor="resendKey">
+                  Clave de API
+                </label>
+                <Input
+                  id="resendKey"
+                  type="password"
+                  autoComplete="off"
+                  value={resendKey}
+                  onChange={(event) => setResendKey(event.target.value)}
+                  placeholder={resend.configured ? "•••••••• (guardada)" : "re_..."}
+                />
+                <p className="mt-1 text-xs text-ink-faint">
+                  Se valida contra Resend antes de guardarla y se almacena cifrada.
+                </p>
+              </div>
+
+              <div>
+                <label className="label" htmlFor="resendLimit">
+                  Tope diario según tu plan
+                </label>
+                <Input
+                  id="resendLimit"
+                  type="number"
+                  min={1}
+                  value={resend.dailyLimit}
+                  onChange={(event) =>
+                    setResend((current) => ({ ...current, dailyLimit: Number(event.target.value) }))
+                  }
+                />
+                <p className="mt-1 text-xs text-ink-faint">
+                  Sirve para avisar antes de lanzar una campaña que se saldría del plan.
+                </p>
+              </div>
+            </div>
+
+            <div className="border-t border-line pt-4">
+              <label className="label" htmlFor="resendWebhook">
+                Secreto del webhook
+              </label>
+              <Input
+                id="resendWebhook"
+                type="password"
+                autoComplete="off"
+                value={resendWebhook}
+                onChange={(event) => setResendWebhook(event.target.value)}
+                placeholder={resend.hasWebhookSecret ? "•••••••• (guardado)" : "whsec_..."}
+              />
+              <p className="mt-1 text-xs text-ink-faint">
+                Crea el webhook en Resend apuntando a{" "}
+                <code className="rounded bg-surface-3 px-1 font-mono text-[11px] text-brand">
+                  {appUrl}/api/webhooks/resend
+                </code>{" "}
+                con los eventos <strong>bounced</strong> y <strong>complained</strong>. Es lo que permite retirar solos
+                a los contactos que rebotan o marcan el correo como spam — algo que Gmail no informa.
+              </p>
+            </div>
+
+            {resendMessage ? <Alert tone={resendMessage.tone}>{resendMessage.text}</Alert> : null}
+
+            <div className="flex justify-end">
+              <Button type="submit" variant="secondary" disabled={savingResend}>
+                {savingResend ? "Comprobando…" : "Guardar configuración de Resend"}
+              </Button>
+            </div>
+          </form>
+        </Card>
+      ) : null}
 
       {isAdmin ? (
         <Card>

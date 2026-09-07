@@ -131,6 +131,7 @@ export const IMPORT_FIELD_ALIASES: Record<string, string[]> = {
 export const TRANSPORT = {
   GMAIL_API: "GMAIL_API",
   SMTP_RELAY: "SMTP_RELAY",
+  RESEND: "RESEND",
 } as const;
 export type Transport = (typeof TRANSPORT)[keyof typeof TRANSPORT];
 
@@ -156,7 +157,28 @@ export const TRANSPORT_LIMITS: Record<Transport, { messagesPer24h: number; label
     label: "Relay SMTP de Workspace",
     hint: "10.000 mensajes cada 24 h por cuenta. Requiere habilitar el relay en la consola de administración.",
   },
+  RESEND: {
+    // Resend no impone un techo por dirección: el límite lo marca el plan
+    // contratado, que se configura en Ajustes (RESEND_DEFAULT_DAILY_LIMIT es
+    // sólo el valor de partida).
+    messagesPer24h: 100000,
+    label: "Resend",
+    hint: "Sin límite por cuenta: manda el plan contratado. Requiere verificar el dominio en Resend.",
+  },
 };
+
+/** Punto de partida del tope diario de Resend, ajustable en Ajustes. */
+export const RESEND_DEFAULT_DAILY_LIMIT = 50000;
+
+/**
+ * Claves de configuración de la organización (tabla Setting).
+ * Los valores marcados como secretos se guardan cifrados.
+ */
+export const SETTING_KEYS = {
+  RESEND_API_KEY: "resend.apiKey",
+  RESEND_DAILY_LIMIT: "resend.dailyLimit",
+  RESEND_WEBHOOK_SECRET: "resend.webhookSecret",
+} as const;
 
 /** Cuota diaria de Gmail según el tipo de cuenta (referencia informativa). */
 export const GMAIL_DAILY_LIMITS = {

@@ -46,11 +46,12 @@ subir bastante (ver [Capacidad de envío](#capacidad-de-envío)).
   contenido, así que editar la plantilla después no altera lo ya enviado.
 
 **Capacidad**
-- Dos vías de salida por cuenta: API de Gmail (2.000/24 h) o relay SMTP de
-  Workspace (10.000/24 h).
+- Tres vías de salida, elegibles por cuenta: API de Gmail (2.000/24 h), relay
+  SMTP de Workspace (10.000/24 h) y Resend (el techo de tu plan).
 - Grupo de remitentes: una campaña puede repartirse entre varias cuentas del
   dominio, sumando la capacidad de todas.
 - Contabilidad sobre ventana móvil de 24 h, como la aplica Google.
+- Rebotes y quejas de spam procesados por webhook cuando se envía con Resend.
 
 **Equipo y control**
 - Acceso restringido por dominio de Google Workspace.
@@ -103,6 +104,7 @@ Combinando ambas:
 | 1 cuenta, relay SMTP | 10.000 |
 | 4 cuentas, relay SMTP | **40.000** |
 | 10 cuentas, relay SMTP | **100.000** |
+| Resend | **el techo de tu plan** |
 
 El techo del dominio se ve en **Ajustes → Capacidad del dominio** y en el
 resumen; la capacidad concreta de una campaña, en su pestaña **Remitentes**.
@@ -111,15 +113,41 @@ Las cuentas del grupo pueden ser buzones normales del equipo o cuentas creadas
 sólo para enviar (`envios1@`, `envios2@`…). Cada una consume una licencia de
 Workspace, que es el coste real de subir el techo por esta vía.
 
-### Si necesitáis más
+### 3. Resend — sin techo por dirección
 
-Por encima de unas decenas de miles de correos diarios, Workspace deja de ser la
-herramienta adecuada: el límite del propio relay a nivel de organización es de
-4,6 millones cada 24 h, pero mucho antes conviene un proveedor de envío masivo
-(Amazon SES, Brevo, Resend…). La capa de transporte (`lib/transport.ts`) está
-aislada precisamente para eso: añadir un proveedor SMTP externo es implementar
-un tercer caso ahí, sin tocar el resto de la plataforma. Se pierde la propiedad
-de «sale de vuestro Gmail», así que es una decisión de negocio, no técnica.
+Para lo que Workspace no cubre, la plataforma puede enviar por **Resend**. Se
+elige por cuenta en **Ajustes → Vía de envío**, igual que las otras dos, así que
+conviven: los envíos que interesa que salgan del buzón de una persona siguen por
+Gmail, y las campañas grandes van por Resend.
+
+| | Gmail / relay | Resend |
+| --- | --- | --- |
+| Techo por dirección | 2.000 / 10.000 cada 24 h | El de tu plan |
+| Sale del buzón del usuario | Sí (queda en «Enviados») | No |
+| DKIM del dominio | Automático | Verificando el dominio en Resend |
+| Rebotes y quejas de spam | **No se notifican** | Webhook en tiempo real |
+| Coste | Licencias de Workspace | Plan de Resend |
+
+Configuración (sólo administradores, en **Ajustes → Resend**):
+
+1. Verifica `eturesports.com` en Resend (registros SPF y DKIM).
+2. Pega la clave de API. Se valida contra Resend antes de guardarse — y se
+   rechaza si no hay ningún dominio verificado, que es el fallo más habitual.
+3. Crea un webhook en Resend apuntando a `{APP_URL}/api/webhooks/resend` con los
+   eventos `email.bounced` y `email.complained`, y pega su secreto.
+
+Ese último paso es el que más aporta: **con Gmail no hay forma de enterarse de
+un rebote**, así que la base se degrada campaña tras campaña. Con el webhook, un
+rebote permanente marca el contacto como `BOUNCED` y una queja de spam lo saca
+de todos los envíos, automáticamente. Los rebotes temporales (buzón lleno,
+servidor caído) se ignoran a propósito: no significan que la dirección sea mala.
+
+Las peticiones se firman con el esquema de Svix y se verifican antes de tocar
+nada; una firma inválida o una petición de hace más de cinco minutos se
+rechazan con un 401.
+
+Los envíos por Resend llevan una clave de idempotencia por destinatario, de modo
+que un reintento tras un fallo de red no puede duplicar un correo.
 
 ---
 
@@ -162,7 +190,7 @@ openssl rand -base64 32   # → ENCRYPTION_KEY
 openssl rand -hex 24      # → CRON_SECRET
 ```
 
-Ajusta también `ALLOWED_DOMAINS` (por defecto `eture.es`): sólo las cuentas de
+Ajusta también `ALLOWED_DOMAINS` (por defecto `eturesports.com`): sólo las cuentas de
 esos dominios podrán entrar.
 
 ### 5. Base de datos y arranque
@@ -251,7 +279,11 @@ src/
     google.ts             OAuth y refresco de tokens
     import.ts             Lectura de CSV/Excel e importación
     merge.ts              Motor de etiquetas de combinación
-    sender.ts             Cola de envío, cuotas y ritmo
+    quota.ts              Cuota en ventana móvil de 24 h
+    resend.ts             Cliente de Resend y verificación de webhooks
+    sender.ts             Cola de envío, grupo de remitentes y ritmo
+    settings.ts           Configuración de la organización (cifrada)
+    transport.ts          Gmail API / relay SMTP / Resend
     tracking.ts           Píxel, redirector de clics y pie de baja
     unsubscribe.ts        Bajas
 prisma/                   Esquema y semilla
