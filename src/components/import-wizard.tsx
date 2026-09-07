@@ -22,6 +22,8 @@ type ImportResponse = {
   updated: number;
   skipped: number;
   invalid: number;
+  verifiedInvalid: number;
+  verifiedRisky: number;
   totalRows: number;
   errors: Array<{ row: number; email: string; reason: string }>;
 };
@@ -42,6 +44,7 @@ export function ImportWizard({ lists }: { lists: Array<{ id: string; name: strin
   const [newListName, setNewListName] = useState("");
   const [updateExisting, setUpdateExisting] = useState(true);
   const [resubscribe, setResubscribe] = useState(false);
+  const [verify, setVerify] = useState(true);
   const [result, setResult] = useState<ImportResponse | null>(null);
 
   const emailColumn = Object.entries(mapping).find(([, target]) => target === "email")?.[0] ?? null;
@@ -108,6 +111,7 @@ export function ImportWizard({ lists }: { lists: Array<{ id: string; name: strin
           listIds,
           updateExisting,
           resubscribe,
+          verify,
         }),
       });
       const payload = await response.json();
@@ -248,6 +252,14 @@ export function ImportWizard({ lists }: { lists: Array<{ id: string; name: strin
             <Metric label="Con errores" value={result.invalid} tone="text-danger" />
           </div>
         </Card>
+
+        {result.verifiedInvalid > 0 || result.verifiedRisky > 0 ? (
+          <Alert tone={result.verifiedInvalid > 0 ? "warning" : "info"}>
+            De las direcciones importadas, <strong>{formatNumber(result.verifiedInvalid)}</strong> no son válidas
+            (dominio inexistente o errata) y <strong>{formatNumber(result.verifiedRisky)}</strong> son dudosas (buzón de
+            equipo o temporal). Las no válidas quedan fuera de los envíos automáticamente; las dudosas sí se envían.
+          </Alert>
+        ) : null}
 
         {result.errors.length > 0 ? (
           <Card>
@@ -415,6 +427,12 @@ export function ImportWizard({ lists }: { lists: Array<{ id: string; name: strin
               description="Si está desmarcado, los correos ya registrados se omiten sin tocar sus datos."
               checked={updateExisting}
               onChange={(event) => setUpdateExisting(event.target.checked)}
+            />
+            <Checkbox
+              label="Comprobar las direcciones"
+              description="Descarta erratas y dominios que no aceptan correo antes de que rebote nada. Añade unos segundos a la importación."
+              checked={verify}
+              onChange={(event) => setVerify(event.target.checked)}
             />
             <Checkbox
               label="Reactivar contactos dados de baja"

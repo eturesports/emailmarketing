@@ -5,7 +5,12 @@ import Link from "next/link";
 import { useMemo, useState, useTransition } from "react";
 import { Badge, Button, Card, Checkbox, EmptyState, Input, Select, Table, Td, Th } from "./ui";
 import { IconSearch, IconTrash, IconUsers } from "./icons";
-import { CONTACT_STATUS_LABELS, type ContactStatus } from "@/lib/constants";
+import {
+  CONTACT_STATUS_LABELS,
+  VERIFICATION_LABELS,
+  type ContactStatus,
+  type Verification,
+} from "@/lib/constants";
 import { cn, formatDate } from "@/lib/utils";
 
 export type ContactRow = {
@@ -15,6 +20,8 @@ export type ContactRow = {
   lastName: string | null;
   company: string | null;
   status: string;
+  verification: string;
+  verificationReason: string | null;
   createdAt: string;
   lists: Array<{ id: string; name: string; color: string }>;
 };
@@ -31,7 +38,7 @@ export function ContactsTable({
 }: {
   contacts: ContactRow[];
   lists: ListOption[];
-  filters: { q: string; status: string; listId: string };
+  filters: { q: string; status: string; listId: string; verification: string };
   total: number;
   page: number;
   pageSize: number;
@@ -43,6 +50,8 @@ export function ContactsTable({
   const [query, setQuery] = useState(filters.q);
   const [bulkList, setBulkList] = useState("");
   const [error, setError] = useState<string | null>(null);
+  const [verifying, setVerifying] = useState(false);
+  const [notice, setNotice] = useState<string | null>(null);
 
   const allSelected = contacts.length > 0 && contacts.every((contact) => selected.has(contact.id));
   const totalPages = Math.max(1, Math.ceil(total / pageSize));
@@ -52,6 +61,7 @@ export function ContactsTable({
     if (filters.q) params.set("q", filters.q);
     if (filters.status) params.set("status", filters.status);
     if (filters.listId) params.set("listId", filters.listId);
+    if (filters.verification) params.set("verification", filters.verification);
     return params.toString();
   }, [filters]);
 
@@ -62,6 +72,7 @@ export function ContactsTable({
     if (merged.q) params.set("q", merged.q);
     if (merged.status) params.set("status", merged.status);
     if (merged.listId) params.set("listId", merged.listId);
+    if (merged.verification) params.set("verification", merged.verification);
     if (next.page && next.page > 1) params.set("page", String(next.page));
 
     startTransition(() => router.push(`/contactos${params.toString() ? `?${params}` : ""}`));
@@ -78,6 +89,32 @@ export function ContactsTable({
       else next.add(id);
       return next;
     });
+  }
+
+  async function verifySelected() {
+    if (selected.size === 0) return;
+
+    setVerifying(true);
+    setError(null);
+    setNotice(null);
+
+    const response = await fetch("/api/contacts/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ ids: [...selected] }),
+    });
+
+    const payload = await response.json().catch(() => ({}));
+    setVerifying(false);
+
+    if (!response.ok) {
+      setError(payload.error ?? "No se han podido comprobar las direcciones.");
+      return;
+    }
+
+    setNotice(payload.message);
+    setSelected(new Set());
+    startTransition(() => router.refresh());
   }
 
   async function runBulk(action: string, listId?: string) {
@@ -156,6 +193,20 @@ export function ContactsTable({
             ))}
           </Select>
 
+          <Select
+            value={filters.verification}
+            onChange={(event) => applyFilters({ verification: event.target.value, page: 1 })}
+            aria-label="Filtrar por comprobación"
+            className="w-auto min-w-[150px]"
+          >
+            <option value="">Comprobación</option>
+            {Object.entries(VERIFICATION_LABELS).map(([value, label]) => (
+              <option key={value} value={value}>
+                {label}
+              </option>
+            ))}
+          </Select>
+
           <a
             href={`/api/contacts/export${queryString ? `?${queryString}` : ""}`}
             className="inline-flex h-9.5 items-center rounded-lg border border-line bg-surface-3 px-3 text-xs font-medium text-ink hover:bg-[#22304a]"
@@ -189,6 +240,9 @@ export function ContactsTable({
           <Button size="sm" variant="ghost" disabled={!bulkList} onClick={() => runBulk("removeFromList", bulkList)}>
             Quitar de la lista
           </Button>
+          <Button size="sm" variant="secondary" disabled={verifying} onClick={verifySelected}>
+            {verifying ? "Comprobando…" : "Comprobar direcciones"}
+          </Button>
           <Button size="sm" variant="ghost" onClick={() => runBulk("unsubscribe")}>
             Dar de baja
           </Button>
@@ -208,6 +262,10 @@ export function ContactsTable({
 
       {error ? (
         <div className="rounded-lg border border-[#5b2030] bg-[#2e1119] px-4 py-3 text-sm text-[#fca5a5]">{error}</div>
+      ) : null}
+
+      {notice ? (
+        <div className="rounded-lg border border-[#1c5a3d] bg-[#0c2a21] px-4 py-3 text-sm text-[#8ee7c2]">{notice}</div>
       ) : null}
 
       <Card className={cn(pending && "opacity-60 transition-opacity")}>
@@ -246,6 +304,7 @@ export function ContactsTable({
                   <Th>Empresa</Th>
                   <Th>Listas</Th>
                   <Th>Estado</Th>
+                  <Th>Dirección</Th>
                   <Th>Alta</Th>
                 </tr>
               </thead>
@@ -308,6 +367,25 @@ export function ContactsTable({
                         >
                           {CONTACT_STATUS_LABELS[contact.status as ContactStatus] ?? contact.status}
                         </Badge>
+                      </Td>
+                      <Td>
+                        {contact.verification === "UNKNOWN" ? (
+                          <span className="text-xs text-ink-faint">—</span>
+                        ) : (
+                          <span title={contact.verificationReason ?? undefined}>
+                            <Badge
+                              tone={
+                                contact.verification === "VALID"
+                                  ? "success"
+                                  : contact.verification === "RISKY"
+                                    ? "warning"
+                                    : "danger"
+                              }
+                            >
+                              {VERIFICATION_LABELS[contact.verification as Verification] ?? contact.verification}
+                            </Badge>
+                          </span>
+                        )}
                       </Td>
                       <Td className="text-xs text-ink-faint">{formatDate(contact.createdAt)}</Td>
                     </tr>

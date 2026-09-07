@@ -15,6 +15,7 @@ import { oneClickUnsubscribeUrl, prepareHtmlForSend } from "./tracking";
 import { openTransport, transportReadiness, type SendContext, type SenderWithUser } from "./transport";
 import { getCapacity, quotaKeyFor, recordSend, type SenderCapacity } from "./quota";
 import { getTrackingBaseUrl } from "./settings";
+import { VERIFICATION } from "./verify";
 import { env } from "./env";
 
 /**
@@ -63,6 +64,7 @@ export type BuildQueueResult = {
   added: number;
   skippedUnsubscribed: number;
   skippedBounced: number;
+  skippedInvalid: number;
   alreadyQueued: number;
   total: number;
 };
@@ -82,7 +84,7 @@ export async function buildQueue(campaignId: string): Promise<BuildQueueResult> 
 
   const listIds = campaign.lists.map((entry) => entry.listId);
   if (listIds.length === 0) {
-    return { added: 0, skippedUnsubscribed: 0, skippedBounced: 0, alreadyQueued: 0, total: 0 };
+    return { added: 0, skippedUnsubscribed: 0, skippedBounced: 0, skippedInvalid: 0, alreadyQueued: 0, total: 0 };
   }
 
   // Un contacto que esté en varias listas de la campaña recibe un solo correo:
@@ -95,7 +97,7 @@ export async function buildQueue(campaignId: string): Promise<BuildQueueResult> 
 
   const contacts = await prisma.contact.findMany({
     where: { id: { in: memberships.map((entry) => entry.contactId) } },
-    select: { id: true, status: true },
+    select: { id: true, status: true, verification: true },
   });
 
   const existing = await prisma.recipient.findMany({
@@ -106,6 +108,7 @@ export async function buildQueue(campaignId: string): Promise<BuildQueueResult> 
 
   let skippedUnsubscribed = 0;
   let skippedBounced = 0;
+  let skippedInvalid = 0;
   let alreadyQueued = 0;
   const toCreate: string[] = [];
 
@@ -122,6 +125,13 @@ export async function buildQueue(campaignId: string): Promise<BuildQueueResult> 
       skippedBounced += 1;
       continue;
     }
+    // Las direcciones que ya se comprobaron y no son válidas se quedan fuera:
+    // enviarles sólo produce rebotes, y cada rebote daña la reputación del
+    // dominio para todos los demás envíos.
+    if (contact.verification === VERIFICATION.INVALID) {
+      skippedInvalid += 1;
+      continue;
+    }
     toCreate.push(contact.id);
   }
 
@@ -136,7 +146,7 @@ export async function buildQueue(campaignId: string): Promise<BuildQueueResult> 
   const total = await prisma.recipient.count({ where: { campaignId, stepKey: INITIAL_STEP_KEY } });
   await prisma.campaign.update({ where: { id: campaignId }, data: { totalRecipients: total } });
 
-  return { added: toCreate.length, skippedUnsubscribed, skippedBounced, alreadyQueued, total };
+  return { added: toCreate.length, skippedUnsubscribed, skippedBounced, skippedInvalid, alreadyQueued, total };
 }
 
 // --- Secuencias de seguimiento ----------------------------------------------

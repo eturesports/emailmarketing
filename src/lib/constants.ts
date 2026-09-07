@@ -103,6 +103,35 @@ export const SEQUENCE_DELAYS = [
 /** Tope de pasos por campaña, para que una secuencia no se vuelva spam. */
 export const MAX_SEQUENCE_STEPS = 5;
 
+// ---------------------------------------------------------------------------
+// Comprobación de direcciones
+// ---------------------------------------------------------------------------
+
+/**
+ * Resultado de comprobar una dirección. Vive aquí, y no en lib/verify, porque
+ * lo usa la tabla de contactos en el cliente y lib/verify arrastra el
+ * resolvedor DNS de Node.
+ */
+export const VERIFICATION = {
+  /** Sin comprobar todavía. */
+  UNKNOWN: "UNKNOWN",
+  /** El dominio acepta correo y no hay nada sospechoso. */
+  VALID: "VALID",
+  /** Se puede enviar, pero con más probabilidad de rebote o queja. */
+  RISKY: "RISKY",
+  /** No tiene sentido enviar: rebotaría casi con seguridad. */
+  INVALID: "INVALID",
+} as const;
+
+export type Verification = (typeof VERIFICATION)[keyof typeof VERIFICATION];
+
+export const VERIFICATION_LABELS: Record<Verification, string> = {
+  UNKNOWN: "Sin comprobar",
+  VALID: "Válida",
+  RISKY: "Dudosa",
+  INVALID: "No válida",
+};
+
 export const ROLE = {
   OWNER: "OWNER",
   ADMIN: "ADMIN",

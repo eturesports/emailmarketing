@@ -13,7 +13,7 @@ const PAGE_SIZE = 50;
 export default async function ContactsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; status?: string; listId?: string; page?: string }>;
+  searchParams: Promise<{ q?: string; status?: string; listId?: string; verification?: string; page?: string }>;
 }) {
   await requireUser();
 
@@ -21,6 +21,7 @@ export default async function ContactsPage({
   const q = params.q?.trim() ?? "";
   const status = params.status ?? "";
   const listId = params.listId ?? "";
+  const verification = params.verification ?? "";
   const page = Math.max(1, Number.parseInt(params.page ?? "1", 10) || 1);
 
   const where = {
@@ -36,6 +37,7 @@ export default async function ContactsPage({
       : {}),
     ...(status ? { status } : {}),
     ...(listId ? { memberships: { some: { listId } } } : {}),
+    ...(verification ? { verification } : {}),
   };
 
   const [contacts, total, lists] = await Promise.all([
@@ -54,7 +56,7 @@ export default async function ContactsPage({
     <>
       <PageHeader
         title="Contactos"
-        description={`${formatNumber(total)} contacto(s) ${q || status || listId ? "que coinciden con el filtro" : "en la base de datos"}.`}
+        description={`${formatNumber(total)} contacto(s) ${q || status || listId || verification ? "que coinciden con el filtro" : "en la base de datos"}.`}
         action={<NewContactForm lists={lists} />}
       />
 
@@ -66,11 +68,13 @@ export default async function ContactsPage({
           lastName: contact.lastName,
           company: contact.company,
           status: contact.status,
+          verification: contact.verification,
+          verificationReason: contact.verificationReason,
           createdAt: contact.createdAt.toISOString(),
           lists: contact.memberships.map((membership) => membership.list),
         }))}
         lists={lists}
-        filters={{ q, status, listId }}
+        filters={{ q, status, listId, verification }}
         total={total}
         page={page}
         pageSize={PAGE_SIZE}

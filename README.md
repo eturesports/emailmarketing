@@ -56,6 +56,8 @@ subir bastante (ver [Capacidad de envío](#capacidad-de-envío)).
 - Cada uno con su vía de envío, su tope y su ritmo.
 
 **Entregabilidad**
+- Comprobación de direcciones antes de enviar: erratas, dominios que no aceptan
+  correo, buzones desechables y de equipo.
 - Dominio de seguimiento propio, para que los enlaces del correo salgan de un
   subdominio del dominio de envío en lugar del dominio de la aplicación.
 - Rebotes y quejas de spam procesados por webhook cuando se envía con Resend.
@@ -172,6 +174,42 @@ rechazan con un 401.
 
 Los envíos por Resend llevan una clave de idempotencia por destinatario, de modo
 que un reintento tras un fallo de red no puede duplicar un correo.
+
+---
+
+## Comprobación de direcciones
+
+Cada correo que rebota es una señal negativa para la reputación del dominio.
+Unas cuantas direcciones muertas en una lista vieja bastan para que los envíos
+siguientes empiecen a caer en spam, así que conviene limpiarlas antes.
+
+Se comprueba al importar (activado por defecto, se puede desmarcar) y bajo
+petición desde **Contactos**: se seleccionan y se pulsa «Comprobar direcciones».
+Cada contacto queda con uno de estos estados:
+
+| Estado | Qué significa | Qué pasa al enviar |
+| --- | --- | --- |
+| **Válida** | El dominio acepta correo y no hay nada sospechoso | Se envía |
+| **Dudosa** | Buzón de equipo (`info@`) o temporal | **Se envía igual**, pero conviene revisar |
+| **No válida** | Errata (`gmial.com`) o dominio que no acepta correo | **Se excluye** de la cola |
+| Sin comprobar | Todavía no se ha mirado | Se envía |
+
+Qué se mira, sin enviar nada:
+
+- **Sintaxis** y erratas: la distancia de edición cuenta el cruce de dos letras
+  como un solo error, porque la errata típica al teclear un dominio no es
+  cambiar una letra sino cruzarlas (`gmial` por `gmail`). Cuando se detecta, se
+  propone la corrección.
+- **Registros MX**: que el dominio exista y acepte correo. Los dominios se
+  resuelven una sola vez y se cachean, así que una lista de miles de contactos
+  concentrada en pocos dominios se comprueba en segundos.
+- **Buzones desechables** y **direcciones de rol**, que se marcan como dudosas
+  pero no se bloquean.
+
+Lo que **no** se hace es preguntarle al servidor de destino si el buzón existe
+(la llamada «verificación SMTP»): muchos proveedores responden que sí a todo, y
+a Google en particular no le gusta que le sondeen así — acabaría penalizando
+justo lo que queremos proteger. Para eso están los rebotes por webhook.
 
 ---
 
@@ -378,6 +416,7 @@ src/
     quota.ts              Cuota en ventana móvil de 24 h
     resend.ts             Cliente de Resend y verificación de webhooks
     tracking-domain.ts    Verificación del dominio de seguimiento propio
+    verify.ts             Comprobación de direcciones (MX, erratas, desechables)
     sender.ts             Cola de envío, grupo de remitentes y ritmo
     settings.ts           Configuración de la organización (cifrada)
     transport.ts          Gmail API / relay SMTP / Resend

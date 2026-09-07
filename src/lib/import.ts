@@ -5,6 +5,7 @@ import { CONTACT_STATUS, IMPORT_FIELD_ALIASES } from "./constants";
 export { MAPPABLE_FIELDS, type MappableField } from "./constants";
 import { normalizeKey } from "./merge";
 import { isValidEmail, normalizeEmail } from "./utils";
+import { VERIFICATION, verifyEmails } from "./verify";
 
 /**
  * Importación de contactos desde CSV, TSV o Excel.
@@ -154,6 +155,8 @@ export type ImportOptions = {
   updateExisting: boolean;
   /** Si es true, un contacto dado de baja vuelve a estado suscrito. */
   resubscribe: boolean;
+  /** Si es true, se comprueban las direcciones (dominio, erratas, desechables). */
+  verify?: boolean;
   userId: string;
   filename: string;
 };
@@ -165,6 +168,9 @@ export type ImportResult = {
   updated: number;
   skipped: number;
   invalid: number;
+  /** Cuántas direcciones quedaron marcadas como no válidas o dudosas. */
+  verifiedInvalid: number;
+  verifiedRisky: number;
   errors: Array<{ row: number; email: string; reason: string }>;
 };
 
@@ -172,11 +178,30 @@ const MAX_REPORTED_ERRORS = 100;
 
 /** Ejecuta la importación: crea o actualiza contactos y los añade a las listas. */
 export async function runImport(options: ImportOptions): Promise<ImportResult> {
-  const { rows, mapping, listIds, updateExisting, resubscribe, userId, filename } = options;
+  const { rows, mapping, listIds, updateExisting, resubscribe, userId, filename, verify = true } = options;
 
   const emailColumn = Object.keys(mapping).find((column) => mapping[column] === "email");
   if (!emailColumn) {
     throw new Error("Tienes que indicar qué columna contiene el email.");
+  }
+
+  // Se comprueban todas las direcciones de una vez antes de tocar la base:
+  // así se resuelve cada dominio una sola vez y el resultado ya viene listo
+  // para guardarlo junto al contacto.
+  const checks = new Map<string, { verification: string; reason: string | null }>();
+
+  if (verify) {
+    const candidates = [
+      ...new Set(
+        rows
+          .map((row) => normalizeEmail(row[emailColumn] ?? ""))
+          .filter((email) => email && isValidEmail(email)),
+      ),
+    ];
+
+    for (const result of await verifyEmails(candidates)) {
+      checks.set(result.email, { verification: result.verification, reason: result.reason });
+    }
   }
 
   const errors: ImportResult["errors"] = [];
@@ -210,6 +235,10 @@ export async function runImport(options: ImportOptions): Promise<ImportResult> {
     seen.add(email);
 
     const { fields, customFields } = mapRow(row, mapping);
+    const check = checks.get(email);
+    const verification = check
+      ? { verification: check.verification, verificationReason: check.reason, verifiedAt: new Date() }
+      : {};
 
     try {
       const existing = await prisma.contact.findUnique({ where: { email } });
@@ -226,6 +255,7 @@ export async function runImport(options: ImportOptions): Promise<ImportResult> {
           where: { id: existing.id },
           data: {
             ...stripEmpty(fields),
+            ...verification,
             customFields: JSON.stringify(mergedCustom),
             ...(resubscribe && existing.status === CONTACT_STATUS.UNSUBSCRIBED
               ? { status: CONTACT_STATUS.SUBSCRIBED, unsubscribedAt: null }
@@ -239,6 +269,7 @@ export async function runImport(options: ImportOptions): Promise<ImportResult> {
           data: {
             email,
             ...stripEmpty(fields),
+            ...verification,
             customFields: JSON.stringify(customFields),
             source: "import",
           },
@@ -256,6 +287,14 @@ export async function runImport(options: ImportOptions): Promise<ImportResult> {
     }
   }
 
+  let verifiedInvalid = 0;
+  let verifiedRisky = 0;
+  for (const email of seen) {
+    const check = checks.get(email);
+    if (check?.verification === VERIFICATION.INVALID) verifiedInvalid += 1;
+    if (check?.verification === VERIFICATION.RISKY) verifiedRisky += 1;
+  }
+
   const job = await prisma.importJob.create({
     data: {
       filename,
@@ -271,7 +310,7 @@ export async function runImport(options: ImportOptions): Promise<ImportResult> {
     },
   });
 
-  return { jobId: job.id, totalRows: rows.length, imported, updated, skipped, invalid, errors };
+  return { jobId: job.id, totalRows: rows.length, imported, updated, skipped, invalid, verifiedInvalid, verifiedRisky, errors };
 }
 
 function pushError(errors: ImportResult["errors"], entry: ImportResult["errors"][number]): void {

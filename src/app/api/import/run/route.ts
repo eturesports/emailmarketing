@@ -14,6 +14,7 @@ const schema = z.object({
   listIds: z.array(z.string()).default([]),
   updateExisting: z.boolean().default(true),
   resubscribe: z.boolean().default(false),
+  verify: z.boolean().default(true),
 });
 
 /** Segundo paso: ejecuta la importación con el mapeo confirmado. */
@@ -26,7 +27,7 @@ export async function POST(request: NextRequest) {
       throw new ApiError(400, parsed.error.issues[0]?.message ?? "Los datos de la importación no son válidos.");
     }
 
-    const { rows, mapping, listIds, updateExisting, resubscribe, filename } = parsed.data;
+    const { rows, mapping, listIds, updateExisting, resubscribe, verify, filename } = parsed.data;
     if (rows.length === 0) throw new ApiError(400, "No hay filas que importar.");
 
     if (!Object.values(mapping).includes("email")) {
@@ -39,6 +40,7 @@ export async function POST(request: NextRequest) {
       listIds,
       updateExisting,
       resubscribe,
+      verify,
       userId: user.id,
       filename,
     });

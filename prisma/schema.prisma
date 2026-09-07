@@ -124,6 +124,12 @@ model Contact {
   status String @default("SUBSCRIBED")
   source String @default("manual") // manual | import | api
 
+  /// Resultado de la comprobación de la dirección, antes de enviarle nada.
+  /// UNKNOWN | VALID | RISKY | INVALID (ver lib/verify.ts).
+  verification       String    @default("UNKNOWN")
+  verificationReason String?
+  verifiedAt         DateTime?
+
   unsubscribeToken String @unique @default(cuid())
 
   notes          String?
@@ -139,6 +145,7 @@ model Contact {
   events      Event[]
 
   @@index([status])
+  @@index([verification])
   @@index([createdAt])
 }
 
