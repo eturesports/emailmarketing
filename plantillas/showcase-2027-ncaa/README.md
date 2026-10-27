@@ -1,9 +1,16 @@
 # Showcase 2027 — series para entrenadores de Division I y Division II
 
 Dos series de diez correos, una para cada división, para entrenadores que en
-su mayoría **ya conocen ETURE**. El tono es el de una carta entre colegas:
-sin presentaciones, sin superlativos, sin cuentas atrás. Cada correo trae
-información útil y como mucho una petición.
+su mayoría **ya conocen ETURE**.
+
+Equilibrio entre carta personal y email marketing:
+
+- **El texto es de carta entre colegas:** humilde, claro, sin presentar ETURE,
+  sin superlativos ni cuentas atrás. Cada correo trae información útil y como
+  mucho una petición.
+- **El envoltorio es de marca:** cabecera ETURE Showcase con filete rojo, una
+  foto por correo, antetítulo y título sobrios, botón rojo, una franja discreta
+  de cifras en los correos 01 y 02, y pie oscuro con enlaces.
 
 - `d1/` — Division I
 - `d2/` — Division II

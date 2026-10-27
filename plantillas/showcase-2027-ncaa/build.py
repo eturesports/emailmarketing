@@ -15,7 +15,8 @@ REG = SC + "#register"
 RECAP = "https://www.youtube.com/watch?v=uDv4ezw4sfA&amp;t=70s"
 INTERVIEWS = "https://www.eturesports.com/coach-testimonials"
 
-INK, MUTED, FAINT, LINE, RED = "#1d1d1f", "#45454a", "#6e6e73", "#e5e5ea", "#9f1b20"
+INK, MUTED, FAINT, LINE, RED, RED2 = "#1d1d1f", "#45454a", "#6e6e73", "#e5e5ea", "#9f1b20", "#c0272d"
+IMG = "https://www.eturesports.com/images/"
 
 SIGNER = ("Anthony Esquivel", "College Recruiting Coordinator, ETURE Sports",
           "Former Associate Head Coach, Furman University")
@@ -27,6 +28,7 @@ DIVISIONS = {
         fit="which players we believe can contribute at Division I level, and which are better suited elsewhere",
         docs_extra="NCAA Eligibility Center registration and amateurism review",
         needs_extra="graduation year, or transfer status",
+        stats=[("+200", "Americans placed in NCAA D1"), ("70%", "Of D1 programs have signed an ETURE player"), ("90%", "Placement rate across D1, D2 &amp; D3")],
     ),
     "d2": dict(
         label="Division II",
@@ -34,6 +36,7 @@ DIVISIONS = {
         fit="which players we believe fit a Division II roster — athletically, academically and financially",
         docs_extra="NCAA Eligibility Center status, and a realistic picture of what each family can contribute, since most Division II packages combine athletic and academic aid",
         needs_extra="graduation year, and the kind of aid package you can offer",
+        stats=[("90%", "Placement rate across D1, D2 &amp; D3"), ("+80", "College coaches in 2026"), ("5", "LaLiga clubs have attended")],
     ),
 }
 
@@ -66,12 +69,24 @@ def bullets(items):
 
 def button(label, href=REG):
     return (f'<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:6px 0 22px;"><tr>'
-            f'<td style="border-radius:6px;border:1px solid {INK};"><a href="{href}" style="display:inline-block;padding:11px 20px;'
-            f'font-size:15px;font-weight:600;color:{INK};text-decoration:none;border-radius:6px;">{label}</a></td></tr></table>')
+            f'<td style="border-radius:6px;background:{RED2};"><a href="{href}" style="display:inline-block;padding:13px 24px;'
+            f'font-size:15px;font-weight:700;color:#ffffff;text-decoration:none;border-radius:6px;">{label} &rarr;</a></td></tr></table>')
+
+
+def stats(items):
+    """Franja discreta de cifras: lista de (cifra, texto)."""
+    w = 100 // len(items)
+    tds = "".join(
+        f'<td class="stat" width="{w}%" align="center" valign="top" style="padding:14px 6px;">'
+        f'<p style="margin:0;font-size:26px;line-height:30px;font-weight:800;color:{RED};">{n}</p>'
+        f'<p style="margin:4px 0 0;font-size:12px;line-height:17px;color:{FAINT};">{t}</p></td>' for n, t in items)
+    return (f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:4px 0 22px;border-top:1px solid {LINE};border-bottom:1px solid {LINE};">'
+            f'<tr>{tds}</tr></table>')
 
 
 def page(div, n, subject, preheader, body):
     d = DIVISIONS[div]
+    eyebrow, title, img, alt = TOPICS[n]
     name, role, past = SIGNER
     return f'''<!DOCTYPE html>
 <!--
@@ -95,6 +110,8 @@ def page(div, n, subject, preheader, body):
   @media only screen and (max-width:620px) {{
     .container {{ width:100% !important; }}
     .px {{ padding-left:22px !important; padding-right:22px !important; }}
+    .hide-m {{ display:none !important; }}
+    .stat {{ padding:12px 2px !important; }}
   }}
 </style>
 </head>
@@ -102,13 +119,25 @@ def page(div, n, subject, preheader, body):
 <div style="display:none;max-height:0;overflow:hidden;mso-hide:all;font-size:1px;line-height:1px;color:#f5f5f7;">{preheader}{"&#8199;&#847;" * 40}</div>
 <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f5f5f7;">
 <tr><td align="center" style="padding:24px 12px;">
-<table role="presentation" class="container" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px;max-width:600px;background:#ffffff;border:1px solid {LINE};border-radius:10px;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;color:{INK};">
+<table role="presentation" class="container" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px;max-width:600px;background:#ffffff;border:1px solid {LINE};border-radius:10px;overflow:hidden;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;color:{INK};">
 
-  <tr><td class="px" style="padding:26px 40px 0;">
-    <img src="https://www.eturesports.com/logo-mark.png" width="40" alt="ETURE" style="display:block;border:0;width:40px;height:auto;">
+  <tr><td class="px" style="padding:18px 40px;border-bottom:3px solid {RED};">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+      <td valign="middle"><a href="{SC}" style="text-decoration:none;">
+        <img src="https://www.eturesports.com/logo-mark.png" width="44" alt="ETURE" style="display:inline-block;vertical-align:middle;border:0;width:44px;height:auto;">
+        <span style="display:inline-block;vertical-align:middle;margin-left:8px;font-size:14px;font-weight:800;letter-spacing:2px;color:{INK};">ETURE&nbsp;SHOWCASE</span></a></td>
+      <td class="hide-m" align="right" valign="middle" style="font-size:11px;letter-spacing:1.2px;text-transform:uppercase;color:{FAINT};">VII edition · Feb 8–11, 2027</td>
+    </tr></table>
   </td></tr>
 
-  <tr><td class="px" style="padding:22px 40px 18px;font-size:16px;line-height:25px;color:{INK};">
+  <tr><td><a href="{SC}"><img src="{IMG}{img}" width="600" alt="{alt}" style="display:block;width:100%;max-width:600px;height:auto;border:0;"></a></td></tr>
+
+  <tr><td class="px" style="padding:28px 40px 0;">
+    <p style="margin:0 0 6px;font-size:12px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:{RED};">{eyebrow}</p>
+    <h1 style="margin:0;font-size:24px;line-height:31px;font-weight:800;color:{INK};">{title}</h1>
+  </td></tr>
+
+  <tr><td class="px" style="padding:18px 40px 18px;font-size:16px;line-height:25px;color:{INK};">
 {body}
   </td></tr>
 
@@ -118,9 +147,10 @@ def page(div, n, subject, preheader, body):
     <p style="margin:0;font-size:14px;color:{FAINT};">{role}<br>{past}</p>
   </td></tr>
 
-  <tr><td class="px" style="padding:18px 40px 22px;border-top:1px solid {LINE};font-size:12px;line-height:18px;color:{FAINT};">
-    ETURE Showcase, VII edition · February 8–11, 2027 · Eture Sports Valencia, Carretera Ademúz km-12, 46184 Valencia, Spain<br>
-    <a href="mailto:showcase@eturesports.com" style="color:{FAINT};">showcase@eturesports.com</a> · <a href="{SC}" style="color:{FAINT};">eturesports.com/showcase</a>
+  <tr><td class="px" style="padding:22px 40px;background:{INK};font-size:12px;line-height:19px;color:#a1a1a6;">
+    <p style="margin:0 0 6px;font-size:13px;font-weight:700;color:#ffffff;">ETURE Showcase · VII edition</p>
+    <p style="margin:0 0 10px;">February 8–11, 2027 · Eture Sports Valencia, Carretera Ademúz km-12, 46184 Valencia, Spain</p>
+    <p style="margin:0;"><a href="{REG}" style="color:#dc8184;text-decoration:none;">Register</a> &nbsp;·&nbsp; <a href="{INTERVIEWS}" style="color:#dc8184;text-decoration:none;">Coach interviews</a> &nbsp;·&nbsp; <a href="mailto:showcase@eturesports.com" style="color:#dc8184;text-decoration:none;">showcase@eturesports.com</a></p>
   </td></tr>
 
 </table>
@@ -132,6 +162,19 @@ def page(div, n, subject, preheader, body):
 
 
 HI = p("Hi {{firstName | Coach}},")
+
+TOPICS = {
+    1: ("Save the date", "February 8–11, 2027 in Valencia", "home/ho-029.jpg", "Coaches at the ETURE Showcase"),
+    2: ("The players", "Who will be on the field in February", "methodology/me-03-competition.jpg", "ETURE players competing"),
+    3: ("Before you travel", "Player information we can send you", "methodology/me-04-exposure-03.jpg", "ETURE coaching staff"),
+    4: ("The schedule", "Four days, organised around the players", "methodology/me-04-exposure-02.jpg", "Coaches watching a session at ETURE"),
+    5: ("Logistics", "One registration covers the week", "methodology/me-04-exposure-01.jpg", "ETURE staff on the field"),
+    6: ("Season's greetings", "Happy holidays from Valencia", "home/hero-desktop.jpg", "ETURE players now in college and pro soccer"),
+    7: ("European Recruiting Soccer Tour", "Four showcases, four countries, one trip", "methodology/me-04-exposure-04.jpg", "Coach evaluating players"),
+    8: ("Your roster", "Tell us what you are looking for", "highschool/hi-056.jpg", "ETURE players before a session"),
+    9: ("Travel", "Getting to Valencia", "facilities-26.jpg", "ETURE campus in Valencia"),
+    10: ("Next week", "See you in Valencia", "methodology/me-04-exposure-05.jpg", "ETURE staff in Valencia"),
+}
 
 
 def series(div):
@@ -145,7 +188,8 @@ def series(div):
                   ("Where", "Eture Sports, Valencia, Spain"),
                   ("Format", "Games on Tuesday, ETURE FC match on Wednesday, individual meetings on Thursday"),
                   ("Cost", "From €350 per coach, with hotel, meals and local transport included")])
-         + p(f"Last February we were grateful to host staff from {d['programs']}. The format stays the same.")
+         + stats([("+80", "College coaches in 2026"), ("+150", "Players competing"), ("4", "Days in Valencia")])
+         + p(f"Last February we were grateful to host staff from {d['programs']}. The format stays the same: games, a night at ETURE FC, and time to sit down and talk about specific players.")
          + p("If you would like to attend, registration is open on our website. If you have any questions first, simply reply to this email.")
          + button("Register for the Showcase")),
 
@@ -154,6 +198,7 @@ def series(div):
          HI
          + p("A short note on the players, since that is what decides whether the trip is worth your time.")
          + p("Every player at the Showcase trains with us in Spain — it is not an open event. The group is a mix of American, Spanish and international players, across several graduation years, and more than 150 will play over the week.")
+         + stats(d["stats"])
          + p(f"Not every one of them will be right for {{{{company | your program}}}}, and we would rather say so. Before you travel, we will tell you plainly {d['fit']}.")
          + p("If it helps, reply with the positions you are looking at and we will start from there.", last=True)),
 
