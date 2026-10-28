@@ -6,6 +6,8 @@
  *   npm run db:seed
  */
 
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import { PrismaClient } from "@prisma/client";
 
 const prisma = new PrismaClient();
@@ -18,6 +20,11 @@ const LISTS = [
 ];
 
 const BASE_STYLE = "font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;color:#111827;max-width:600px;margin:0 auto;";
+
+/** Plantillas largas que viven como HTML completo en prisma/templates. */
+function templateFile(name: string): string {
+  return readFileSync(join(__dirname, "templates", name), "utf8");
+}
 
 const TEMPLATES = [
   {
@@ -98,6 +105,20 @@ const TEMPLATES = [
 
   <p style="margin:0;color:#6b7280;font-size:13px;">Un saludo,<br />Departamento comercial · Eture Esports</p>
 </div>`,
+  },
+  {
+    name: "Programas 2027 · Jugadores y padres (EN)",
+    category: "Programas",
+    subject: "{{firstName | Hi}}, your pathway to college soccer starts in Spain",
+    previewText: "Five programs, one pathway: summer camp, high school, gap year, college transfer and a one-week trial.",
+    html: templateFile("programas-jugadores-padres.en.html"),
+  },
+  {
+    name: "Programas 2027 · Jugadores y padres (ES)",
+    category: "Programas",
+    subject: "{{firstName | Hola}}, tu camino al fútbol universitario empieza en España",
+    previewText: "Cinco programas, un solo camino: campus de verano, instituto, gap year, transfer universitario y una prueba de una semana.",
+    html: templateFile("programas-jugadores-padres.es.html"),
   },
   {
     name: "Aviso corto",
