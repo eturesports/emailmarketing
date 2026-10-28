@@ -106,8 +106,8 @@ const TEMPLATES = [
     previewText: "International, Spanish and domestic players. Tell us what you need and we match you.",
     html: `<div style="font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;color:#1d1d1f;max-width:600px;margin:0 auto;">
   <div style="background:#9f1b20;padding:28px 28px 24px;border-radius:12px 12px 0 0;">
-    <p style="color:#ffffff;font-size:13px;letter-spacing:2px;text-transform:uppercase;margin:0;font-weight:bold;">ETURE Sports</p>
-    <h1 style="color:#ffffff;font-size:26px;line-height:1.25;margin:10px 0 0;">Our recruiting app is live</h1>
+    <img src="https://www.eturesports.com/wordmark-white.png" width="150" height="52" alt="ETURE Sports" style="display:block;border:0;outline:none;width:150px;height:auto;margin:0;color:#ffffff;font-size:20px;font-weight:bold;" />
+    <h1 style="color:#ffffff;font-size:26px;line-height:1.25;margin:18px 0 0;">Our recruiting app is live</h1>
     <p style="color:#f3d6d7;font-size:14px;margin:8px 0 0;">Every player we work with, in one place. Built for college coaches.</p>
   </div>
 
