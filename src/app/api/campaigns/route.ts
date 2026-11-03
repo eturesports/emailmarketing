@@ -3,7 +3,7 @@ import { z } from "zod";
 import { prisma } from "@/lib/db";
 import { ApiError, requireApiUser } from "@/lib/auth";
 import { handleApi } from "@/lib/api";
-import { CAMPAIGN_STATUS } from "@/lib/constants";
+import { CAMPAIGN_KIND, CAMPAIGN_STATUS } from "@/lib/constants";
 
 export const dynamic = "force-dynamic";
 
@@ -13,6 +13,7 @@ const schema = z.object({
   templateId: z.string().optional(),
   listIds: z.array(z.string()).optional(),
   senderId: z.string().optional(),
+  kind: z.enum([CAMPAIGN_KIND.BROADCAST, CAMPAIGN_KIND.AUTOMATION]).optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -24,7 +25,9 @@ export async function POST(request: NextRequest) {
       throw new ApiError(400, parsed.error.issues[0]?.message ?? "Datos no válidos.");
     }
 
-    const { name, subject, templateId, listIds = [], senderId } = parsed.data;
+    const { name, subject, templateId, senderId, kind = CAMPAIGN_KIND.BROADCAST } = parsed.data;
+    // Una automatización no tiene listas: sus contactos entran de uno en uno.
+    const listIds = kind === CAMPAIGN_KIND.AUTOMATION ? [] : (parsed.data.listIds ?? []);
 
     // Remitente por defecto: el pedido, o el propio del usuario, o el primero
     // activo que haya. Sin remitente no se puede crear una campaña.
@@ -47,6 +50,7 @@ export async function POST(request: NextRequest) {
     const campaign = await prisma.campaign.create({
       data: {
         name,
+        kind,
         subject: subject || template?.subject || "",
         html: template?.html ?? DEFAULT_HTML,
         previewText: template?.previewText ?? null,

@@ -21,6 +21,8 @@ export type EditableCampaign = {
   includeUnsubscribe: boolean;
   sendRatePerHour: number;
   status: string;
+  /** BROADCAST | AUTOMATION */
+  kind: string;
   scheduledAt: string | null;
   listIds: string[];
   senderIds: string[];
@@ -50,6 +52,7 @@ export function CampaignEditor({
   steps,
   customFieldKeys,
   senderEmail,
+  leadSourceNames = [],
 }: {
   campaign: EditableCampaign;
   lists: ListOption[];
@@ -57,6 +60,8 @@ export function CampaignEditor({
   steps: SequenceStepView[];
   customFieldKeys: string[];
   senderEmail: string;
+  /** Orígenes de leads que alimentan esta automatización. */
+  leadSourceNames?: string[];
 }) {
   const router = useRouter();
   const htmlRef = useRef<HTMLTextAreaElement>(null);
@@ -222,14 +227,20 @@ export function CampaignEditor({
     else setMessage({ tone: "danger", text: "No se ha podido borrar la campaña." });
   }
 
-  const canSend = campaign.subject.trim() && campaign.html.trim() && campaign.listIds.length > 0;
+  const isAutomation = campaign.kind === "AUTOMATION";
+  const isPaused = campaign.status === "PAUSED";
+  const canSend =
+    campaign.subject.trim() && campaign.html.trim() && (isAutomation || campaign.listIds.length > 0);
   const isScheduled = campaign.status === "SCHEDULED";
+  const tabs: Tab[] = isAutomation
+    ? ["contenido", "secuencia", "remitentes", "ajustes"]
+    : ["contenido", "destinatarios", "secuencia", "remitentes", "ajustes"];
 
   return (
     <div className="grid gap-4 lg:grid-cols-3">
       <div className="space-y-4 lg:col-span-2">
         <nav className="flex gap-1 rounded-lg border border-line bg-surface p-1" role="tablist">
-          {(["contenido", "destinatarios", "secuencia", "remitentes", "ajustes"] as Tab[]).map((value) => (
+          {tabs.map((value) => (
             <button
               key={value}
               type="button"
@@ -582,12 +593,30 @@ export function CampaignEditor({
       {/* Panel lateral de acciones */}
       <div className="space-y-4">
         <Card>
-          <CardHeader title="Enviar" />
+          <CardHeader title={isAutomation ? "Automatización" : "Enviar"} />
           <div className="space-y-4 p-5">
+            {isAutomation ? (
+              leadSourceNames.length > 0 ? (
+                <Alert tone="info">
+                  Reciben este correo los leads de: <strong>{leadSourceNames.join(", ")}</strong>. Cada lead nuevo
+                  recibe la bienvenida en cuanto llega y los seguimientos según la pestaña «secuencia».
+                </Alert>
+              ) : (
+                <Alert tone="warning">
+                  Ningún origen de leads usa todavía esta automatización. Asígnala en{" "}
+                  <a href="/leads" className="underline">
+                    Leads
+                  </a>
+                  .
+                </Alert>
+              )
+            ) : null}
             <dl className="space-y-1.5 text-sm">
               <div className="flex justify-between">
-                <dt className="text-ink-muted">Destinatarios en cola</dt>
-                <dd className="tabular-nums font-medium">{formatNumber(campaign.totalRecipients || reach)}</dd>
+                <dt className="text-ink-muted">{isAutomation ? "Leads en espera" : "Destinatarios en cola"}</dt>
+                <dd className="tabular-nums font-medium">
+                  {formatNumber(isAutomation ? campaign.totalRecipients : campaign.totalRecipients || reach)}
+                </dd>
               </div>
               <div className="flex justify-between">
                 <dt className="text-ink-muted">Capacidad ahora (24 h)</dt>
@@ -626,7 +655,9 @@ export function CampaignEditor({
 
             {!canSend ? (
               <Alert tone="info">
-                Para poder enviar hacen falta un asunto, un contenido y al menos una lista de destinatarios.
+                {isAutomation
+                  ? "Para activarla hacen falta un asunto y un contenido."
+                  : "Para poder enviar hacen falta un asunto, un contenido y al menos una lista de destinatarios."}
               </Alert>
             ) : null}
 
@@ -652,6 +683,7 @@ export function CampaignEditor({
               </div>
             </div>
 
+            {isAutomation ? null : (
             <div className="space-y-2 border-t border-line pt-4">
               <label className="label" htmlFor="scheduleAt">
                 Programar
@@ -684,7 +716,35 @@ export function CampaignEditor({
                 </Button>
               )}
             </div>
+            )}
 
+            {isAutomation ? (
+              <Button
+                type="button"
+                size="lg"
+                className="w-full"
+                disabled={!canSend || busy === "send" || busy === "resume"}
+                onClick={() => {
+                  const waiting = campaign.totalRecipients;
+                  const text =
+                    waiting > 0
+                      ? `Hay ${formatNumber(waiting)} lead(s) esperando: recibirán la bienvenida ahora. ¿Activar?`
+                      : "A partir de ahora cada lead nuevo recibirá este correo. ¿Activar?";
+                  if (confirm(text)) act(isPaused ? "resume" : "send");
+                }}
+              >
+                {busy === "send" || busy === "resume" ? (
+                  <>
+                    <Spinner /> Activando…
+                  </>
+                ) : (
+                  <>
+                    <IconSend size={16} />
+                    {isPaused ? "Reanudar automatización" : "Activar automatización"}
+                  </>
+                )}
+              </Button>
+            ) : (
             <Button
               type="button"
               size="lg"
@@ -705,6 +765,7 @@ export function CampaignEditor({
                 </>
               )}
             </Button>
+            )}
           </div>
         </Card>
 

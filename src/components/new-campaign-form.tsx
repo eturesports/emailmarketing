@@ -13,14 +13,17 @@ export function NewCampaignForm({
   templates,
   defaultListId,
   defaultTemplateId,
+  defaultKind = "BROADCAST",
 }: {
   lists: ListOption[];
   templates: TemplateOption[];
   defaultListId?: string;
   defaultTemplateId?: string;
+  defaultKind?: "BROADCAST" | "AUTOMATION";
 }) {
   const router = useRouter();
 
+  const [kind, setKind] = useState<"BROADCAST" | "AUTOMATION">(defaultKind);
   const [name, setName] = useState("");
   const [subject, setSubject] = useState("");
   const [templateId, setTemplateId] = useState(defaultTemplateId ?? "");
@@ -48,7 +51,8 @@ export function NewCampaignForm({
         name,
         subject: subject || undefined,
         templateId: templateId || undefined,
-        listIds,
+        listIds: kind === "AUTOMATION" ? [] : listIds,
+        kind,
       }),
     });
 
@@ -66,6 +70,35 @@ export function NewCampaignForm({
   return (
     <form onSubmit={submit} className="grid gap-4 lg:grid-cols-3">
       <div className="space-y-4 lg:col-span-2">
+        <Card>
+          <CardHeader title="Tipo" />
+          <div className="grid gap-2 p-5 sm:grid-cols-2">
+            {(
+              [
+                { value: "BROADCAST", title: "Campaña puntual", text: "Se envía una vez a las listas que elijas." },
+                {
+                  value: "AUTOMATION",
+                  title: "Automatización de leads",
+                  text: "Siempre activa: cada lead nuevo de Meta recibe el correo y sus seguimientos.",
+                },
+              ] as const
+            ).map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => setKind(option.value)}
+                aria-pressed={kind === option.value}
+                className={`rounded-lg border p-4 text-left transition-colors ${
+                  kind === option.value ? "border-brand bg-[#0b1f27]" : "border-line hover:border-brand-soft"
+                }`}
+              >
+                <p className="text-sm font-medium">{option.title}</p>
+                <p className="mt-0.5 text-xs text-ink-faint">{option.text}</p>
+              </button>
+            ))}
+          </div>
+        </Card>
+
         <Card>
           <CardHeader title="Lo básico" />
           <div className="space-y-4 p-5">
@@ -143,6 +176,15 @@ export function NewCampaignForm({
       </div>
 
       <div className="space-y-4">
+        {kind === "AUTOMATION" ? (
+          <Card>
+            <CardHeader title="Destinatarios" />
+            <p className="p-5 text-sm text-ink-muted">
+              Una automatización no tiene listas: la reciben los leads del origen al que la asignes en{" "}
+              <strong>Leads</strong>.
+            </p>
+          </Card>
+        ) : (
         <Card>
           <CardHeader title="Destinatarios" description="Puedes cambiarlo antes de enviar." />
           <div className="max-h-80 space-y-1.5 overflow-y-auto p-5">
@@ -187,6 +229,7 @@ export function NewCampaignForm({
             </div>
           ) : null}
         </Card>
+        )}
 
         {error ? <Alert tone="danger">{error}</Alert> : null}
 

@@ -89,6 +89,12 @@ export const IconSettings = (props: IconProps) => (
   </Icon>
 );
 
+export const IconBolt = (props: IconProps) => (
+  <Icon {...props}>
+    <path d="M13 3 4 14h7l-1 7 9-11h-7l1-7Z" />
+  </Icon>
+);
+
 export const IconPlus = (props: IconProps) => (
   <Icon {...props}>
     <path d="M12 5v14M5 12h14" />

@@ -143,6 +143,7 @@ model Contact {
   memberships ListMembership[]
   recipients  Recipient[]
   events      Event[]
+  leads       Lead[]
 
   @@index([status])
   @@index([verification])
@@ -160,6 +161,7 @@ model ContactList {
 
   memberships   ListMembership[]
   campaignLists CampaignList[]
+  leadSources   LeadSource[]
 }
 
 model ListMembership {
@@ -207,6 +209,13 @@ model Campaign {
   // DRAFT | SCHEDULED | SENDING | PAUSED | SENT | FAILED
   status String @default("DRAFT")
 
+  /// BROADCAST | AUTOMATION (ver CAMPAIGN_KIND en lib/constants.ts).
+  ///
+  /// Una campaña puntual se envía una vez a sus listas. Una automatización no
+  /// tiene listas: los contactos entran de uno en uno (un lead de Meta, por
+  /// ejemplo) y, mientras está activa (SENDING), nunca se da por terminada.
+  kind String @default("BROADCAST")
+
   /// Remitente por defecto de la campaña. Si no se elige un grupo explícito,
   /// es el único que envía.
   senderId String
@@ -245,13 +254,15 @@ model Campaign {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  lists      CampaignList[]
-  senders    CampaignSender[]
-  steps      SequenceStep[]
-  recipients Recipient[]
-  events     Event[]
+  lists       CampaignList[]
+  senders     CampaignSender[]
+  steps       SequenceStep[]
+  recipients  Recipient[]
+  events      Event[]
+  leadSources LeadSource[]
 
   @@index([status])
+  @@index([kind])
   @@index([scheduledAt])
 }
 
@@ -314,6 +325,14 @@ model Recipient {
   status   String  @default("PENDING")
   attempts Int     @default(0)
   error    String?
+
+  /// Cuándo un worker reclamó este mensaje para enviarlo (estado SENDING).
+  ///
+  /// Dos pasadas pueden solaparse — el cron y el envío inmediato de un lead, o
+  /// dos ejecuciones del cron —, así que cada mensaje se reclama antes de
+  /// enviarlo y sólo lo envía quien lo reclamó. Si el proceso muere a medias,
+  /// el mensaje vuelve a la cola cuando la reclamación caduca.
+  lockedAt DateTime?
 
   // Identificador opaco que viaja en el píxel y en los enlaces rastreados
   trackingId String @unique @default(cuid())
@@ -388,6 +407,86 @@ model SequenceStep {
 
   @@unique([campaignId, position])
   @@index([campaignId])
+}
+
+// ---------------------------------------------------------------------------
+// Leads (Meta Lead Ads y otras entradas automáticas)
+// ---------------------------------------------------------------------------
+
+/// Un origen de leads con su propio tratamiento: a qué lista van y qué
+/// automatización reciben. Eture tiene dos — padres y jugadores —, cada uno con
+/// sus formularios de Meta y sus correos.
+model LeadSource {
+  id String @id @default(cuid())
+
+  name String
+  /// Identificador estable para las integraciones (`padres`, `hijos`): es lo que
+  /// se manda en `source` al endpoint genérico /api/leads.
+  slug String @unique
+
+  /// PARENT | PLAYER | OTHER (ver LEAD_AUDIENCE en lib/constants.ts).
+  audience String @default("OTHER")
+
+  /// Formularios de Meta Lead Ads que alimentan este origen, como JSON
+  /// serializado: ["1234567890", "9876543210"].
+  metaFormIds String @default("[]")
+
+  listId String?
+  list   ContactList? @relation(fields: [listId], references: [id], onDelete: SetNull)
+
+  /// Automatización que recibe cada lead nuevo.
+  campaignId String?
+  campaign   Campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
+
+  isActive Boolean @default(true)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  leads Lead[]
+}
+
+/// Un lead recibido, tal y como llegó. Es a la vez el registro de auditoría y
+/// la cola de reintentos: si la API de Meta falla al pedir los datos, el lead
+/// queda aquí y el worker lo vuelve a intentar.
+model Lead {
+  id String @id @default(cuid())
+
+  /// META | API (ver LEAD_PROVIDER en lib/constants.ts).
+  provider String @default("META")
+
+  /// Identificador del lead en el proveedor (`leadgen_id` en Meta). Único: Meta
+  /// reintenta las notificaciones y el mismo lead no debe procesarse dos veces.
+  externalId String @unique
+
+  formId       String?
+  pageId       String?
+  adId         String?
+  adName       String?
+  campaignName String?
+
+  /// Respuestas del formulario normalizadas, como JSON: { "email": "…", … }.
+  fields String @default("{}")
+
+  sourceId String?
+  source   LeadSource? @relation(fields: [sourceId], references: [id], onDelete: SetNull)
+
+  contactId String?
+  contact   Contact? @relation(fields: [contactId], references: [id], onDelete: SetNull)
+
+  /// PENDING | PROCESSED | UNMATCHED | INVALID | FAILED (ver LEAD_STATUS).
+  status   String  @default("PENDING")
+  attempts Int     @default(0)
+  error    String?
+  /// Qué se hizo con él, en una frase legible para el panel.
+  outcome  String?
+
+  receivedAt  DateTime  @default(now())
+  processedAt DateTime?
+
+  @@index([status, receivedAt])
+  @@index([formId])
+  @@index([sourceId, receivedAt])
 }
 
 // ---------------------------------------------------------------------------

@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 import { useState } from "react";
 import { Wordmark } from "./logo";
 import {
+  IconBolt,
   IconDashboard,
   IconList,
   IconLogout,
@@ -20,6 +21,7 @@ import { cn, initials } from "@/lib/utils";
 const NAV = [
   { href: "/panel", label: "Resumen", icon: IconDashboard },
   { href: "/campanas", label: "Campañas", icon: IconMail },
+  { href: "/leads", label: "Leads", icon: IconBolt },
   { href: "/contactos", label: "Contactos", icon: IconUsers },
   { href: "/listas", label: "Listas", icon: IconList },
   { href: "/plantillas", label: "Plantillas", icon: IconTemplate },

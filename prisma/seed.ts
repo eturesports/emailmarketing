@@ -7,6 +7,7 @@
  */
 
 import { PrismaClient } from "@prisma/client";
+import { LEAD_PLAYBOOKS } from "../src/lib/lead-playbooks";
 
 const prisma = new PrismaClient();
 
@@ -128,6 +129,40 @@ async function main(): Promise<void> {
     await prisma.template.create({ data: template });
   }
   console.log(`✔ ${TEMPLATES.length} plantillas listas`);
+
+  // Leads de Meta Ads: un origen por público (padres y jugadores), cada uno con
+  // su lista y su plantilla de bienvenida. La automatización se crea desde
+  // /leads con un clic, porque necesita un remitente y aquí puede no haberlo.
+  for (const playbook of Object.values(LEAD_PLAYBOOKS)) {
+    const list = await prisma.contactList.upsert({
+      where: { name: playbook.listName },
+      create: {
+        name: playbook.listName,
+        color: playbook.listColor,
+        description: `Leads de Meta Ads · ${playbook.sourceName}.`,
+      },
+      update: {},
+    });
+
+    if (!(await prisma.template.findFirst({ where: { name: playbook.templateName } }))) {
+      await prisma.template.create({
+        data: {
+          name: playbook.templateName,
+          category: "Leads Meta",
+          subject: playbook.subject,
+          previewText: playbook.previewText,
+          html: playbook.html,
+        },
+      });
+    }
+
+    await prisma.leadSource.upsert({
+      where: { slug: playbook.slug },
+      create: { name: playbook.sourceName, slug: playbook.slug, audience: playbook.audience, listId: list.id },
+      update: {},
+    });
+  }
+  console.log("✔ Orígenes de leads «padres» y «hijos» listos");
 
   console.log("\nSemilla completada. Arranca la aplicación con `npm run dev` y entra con tu cuenta de Google.");
 }

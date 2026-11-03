@@ -11,11 +11,11 @@ import { CampaignReport } from "@/components/campaign-report";
 import { PageHeader, StatusBadge } from "@/components/ui";
 import { IconChevronLeft } from "@/components/icons";
 import {
+  CAMPAIGN_KIND,
   CAMPAIGN_STATUS,
-  CAMPAIGN_STATUS_LABELS,
   EVENT_TYPE,
   RECIPIENT_STATUS,
-  type CampaignStatus,
+  campaignStatusLabel,
 } from "@/lib/constants";
 import { parseCustomFields } from "@/lib/merge";
 import { formatDateTime } from "@/lib/utils";
@@ -36,7 +36,10 @@ export default async function CampaignDetailPage({ params }: { params: Promise<{
   });
   if (!campaign) notFound();
 
-  const editable = EDITABLE.has(campaign.status);
+  const isAutomation = campaign.kind === CAMPAIGN_KIND.AUTOMATION;
+  // Una automatización pausada se puede retocar: los leads que lleguen mientras
+  // tanto esperan en la cola y salen con la versión nueva al reactivarla.
+  const editable = EDITABLE.has(campaign.status) || (isAutomation && campaign.status === CAMPAIGN_STATUS.PAUSED);
 
   const header = (
     <>
@@ -53,15 +56,17 @@ export default async function CampaignDetailPage({ params }: { params: Promise<{
         description={
           campaign.status === CAMPAIGN_STATUS.SCHEDULED && campaign.scheduledAt
             ? `Programada para el ${formatDateTime(campaign.scheduledAt)}`
-            : campaign.completedAt
-              ? `Enviada el ${formatDateTime(campaign.completedAt)}`
-              : (campaign.subject || "Sin asunto")
+            : isAutomation
+              ? "Automatización: cada lead nuevo recibe este correo y sus seguimientos."
+              : campaign.completedAt
+                ? `Enviada el ${formatDateTime(campaign.completedAt)}`
+                : (campaign.subject || "Sin asunto")
         }
         action={
           <StatusBadge
             status={campaign.status}
             kind="campaign"
-            label={CAMPAIGN_STATUS_LABELS[campaign.status as CampaignStatus] ?? campaign.status}
+            label={campaignStatusLabel(campaign.status, campaign.kind)}
           />
         }
       />
@@ -69,7 +74,7 @@ export default async function CampaignDetailPage({ params }: { params: Promise<{
   );
 
   if (editable) {
-    const [lists, senderAccounts, sampleContacts] = await Promise.all([
+    const [lists, senderAccounts, sampleContacts, leadSources] = await Promise.all([
       prisma.contactList.findMany({
         orderBy: { name: "asc" },
         include: { _count: { select: { memberships: true } } },
@@ -78,6 +83,7 @@ export default async function CampaignDetailPage({ params }: { params: Promise<{
       // Muestra pequeña sólo para ofrecer los campos personalizados como
       // botones de inserción en el editor.
       prisma.contact.findMany({ select: { customFields: true }, take: 50, orderBy: { updatedAt: "desc" } }),
+      prisma.leadSource.findMany({ where: { campaignId: id }, select: { name: true } }),
     ]);
 
     // Capacidad restante de cada cuenta en la ventana móvil de 24 h, para poder
@@ -120,6 +126,7 @@ export default async function CampaignDetailPage({ params }: { params: Promise<{
             includeUnsubscribe: campaign.includeUnsubscribe,
             sendRatePerHour: campaign.sendRatePerHour,
             status: campaign.status,
+            kind: campaign.kind,
             scheduledAt: campaign.scheduledAt ? toLocalInputValue(campaign.scheduledAt) : null,
             listIds: campaign.lists.map((entry) => entry.listId),
             senderIds: campaign.senders.map((entry) => entry.senderId),
@@ -144,6 +151,7 @@ export default async function CampaignDetailPage({ params }: { params: Promise<{
           }))}
           customFieldKeys={customFieldKeys}
           senderEmail={campaign.sender.fromEmail}
+          leadSourceNames={leadSources.map((source) => source.name)}
         />
       </>
     );
@@ -176,6 +184,7 @@ export default async function CampaignDetailPage({ params }: { params: Promise<{
           id: campaign.id,
           name: campaign.name,
           status: campaign.status,
+          kind: campaign.kind,
           totalRecipients: campaign.totalRecipients,
           sentCount: campaign.sentCount,
           failedCount: campaign.failedCount,

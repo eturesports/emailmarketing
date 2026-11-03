@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 export default async function NewCampaignPage({
   searchParams,
 }: {
-  searchParams: Promise<{ listId?: string; templateId?: string }>;
+  searchParams: Promise<{ listId?: string; templateId?: string; kind?: string }>;
 }) {
   await requireUser();
   const params = await searchParams;
@@ -51,6 +51,7 @@ export default async function NewCampaignPage({
         templates={templates}
         defaultListId={params.listId}
         defaultTemplateId={params.templateId}
+        defaultKind={params.kind === "AUTOMATION" ? "AUTOMATION" : "BROADCAST"}
       />
     </>
   );

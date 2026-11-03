@@ -50,6 +50,7 @@ async function run(request: NextRequest): Promise<NextResponse> {
       ok: true,
       durationMs: Date.now() - started,
       activated: result.activated,
+      leadsRetried: result.leadsRetried,
       followUps: result.followUps,
       campaigns: result.processed,
       sent: result.processed.reduce((total, entry) => total + entry.sent, 0),

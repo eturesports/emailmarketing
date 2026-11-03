@@ -285,6 +285,104 @@ bloquean muchos clientes de correo.
 
 ---
 
+## Leads de Meta Ads
+
+Cada lead que entra por un formulario de Meta (Facebook o Instagram) recibe en
+minutos un correo de bienvenida **con su nombre** y, después, sus seguimientos.
+Padres y jugadores tienen **correos distintos**, porque llegan con preguntas
+distintas.
+
+```
+Formulario de Meta ─▶ /api/webhooks/meta ─▶ origen (padres | hijos)
+                                             ├─ contacto + lista del origen
+                                             └─ automatización del origen
+                                                  bienvenida → +2 días → +5 días
+```
+
+### Orígenes y automatizaciones
+
+Un **origen** agrupa los formularios de un público y decide a qué lista y a qué
+automatización van sus leads. Vienen dos de serie (`npm run db:seed`):
+
+| Origen | Identificador | Lista | Correos |
+| --- | --- | --- | --- |
+| Padres | `padres` | Leads Meta · Padres | Coste, estudios, acompañamiento. Saludo «Hola, familia» si no hay nombre |
+| Hijos (jugadores) | `hijos` | Leads Meta · Jugadores | Vídeo, nivel, qué piden los entrenadores. Saludo «Hola, crack» |
+
+Una **automatización** es una campaña que no se envía una vez a unas listas:
+está siempre activa y los contactos entran de uno en uno. Se edita igual que
+cualquier campaña (contenido, secuencia, remitentes) y se puede pausar para
+retocarla; los leads que entran mientras tanto esperan en la cola.
+
+En **Leads**, cada origen tiene un botón *Crear automatización con los correos
+de padres/jugadores*, que la deja en borrador con la bienvenida y dos
+seguimientos (a quien no hizo clic, a los 2 y a los 5 días). Revisa los textos
+y el enlace de los botones (por defecto `https://eturesports.com`) y pulsa
+**Activar automatización**.
+
+### Personalización
+
+- El nombre sale del formulario (`full_name`, o `first_name`/`last_name`). Se
+  limpia antes de usarlo: «JUAN PÉREZ» pasa a «Juan Pérez», y «María José García
+  López» saluda como «María José». Si no es fiable (números, emojis, «Mamá de
+  Lucas 10») se descarta y el correo usa su valor por defecto:
+  `{{firstName | familia}}`.
+- Las preguntas personalizadas del formulario (edad, posición…) quedan como
+  campos del contacto y se pueden usar como etiqueta, p. ej. `{{posicion}}`.
+  Además se guardan `{{origenLead}}`, `{{anuncioMeta}}` y `{{campanaMeta}}`.
+- Si la persona ya era contacto, sólo se rellenan los huecos y **no se toca su
+  estado**: quien se dio de baja no vuelve a recibir nada. Quien rellena el
+  formulario dos veces no recibe dos bienvenidas.
+- La dirección se comprueba al entrar; si no acepta correo, no se le envía.
+
+### Conexión con Meta
+
+1. En [developers.facebook.com](https://developers.facebook.com/) crea (o usa)
+   una app de tipo *Business* y añade el producto **Webhooks**.
+2. Define en el servidor:
+   - `META_APP_SECRET`: *Configuración de la app → Básica → Clave secreta*.
+   - `META_VERIFY_TOKEN`: un texto que inventas (`openssl rand -hex 16`).
+   - `META_ACCESS_TOKEN`: token con permiso `leads_retrieval` y
+     `pages_manage_metadata`. Lo mejor es un **usuario del sistema** del Business
+     Manager con acceso a las dos páginas: no caduca.
+3. Webhooks → objeto **Page** → URL `{APP_URL}/api/webhooks/meta`, el mismo
+   token de verificación, y suscríbete al campo **leadgen**.
+4. Suscribe cada página a la app (`POST /{page-id}/subscribed_apps` con
+   `subscribed_fields=leadgen`, o desde el Business Manager).
+5. En **Leads**, pega los ID de los formularios en su origen. No hace falta
+   tenerlos de antemano: el primer lead de un formulario desconocido aparece como
+   *sin asignar* con un botón «Es de Padres / Es de Hijos», y al pulsarlo se
+   procesa con su bienvenida.
+
+La [herramienta de pruebas de anuncios de clientes potenciales](https://developers.facebook.com/tools/lead-ads-testing)
+de Meta genera leads de prueba para comprobarlo de punta a punta.
+
+Robustez:
+
+- Cada notificación se verifica con la firma `X-Hub-Signature-256` antes de
+  tocar nada, y se responde 200 aunque algo falle después, para que Meta no
+  desactive la suscripción.
+- El lead se **guarda antes de procesarse**: si la Graph API no responde, el
+  worker lo reintenta en cada pasada (unas 2 h). Lo fallido se puede reintentar
+  a mano desde **Leads**.
+- La bienvenida se envía en el momento, sin esperar al cron. Cada mensaje se
+  *reclama* antes de enviarse, así que el envío inmediato y el worker nunca
+  mandan el mismo correo dos veces.
+
+### Otras entradas (Zapier, Make, n8n, landing propia)
+
+```bash
+curl -X POST "$APP_URL/api/leads" \
+  -H "Authorization: Bearer $LEADS_API_KEY" \
+  -H "Content-Type: application/json" \
+  -d '{"source":"padres","email":"ana@example.com","full_name":"Ana García","fields":{"edad_hijo":"16"}}'
+```
+
+`source` es el identificador del origen. Sin `lead_id`, el mismo origen y email
+no se registran dos veces.
+
+---
+
 ## Puesta en marcha
 
 ### 1. Requisitos

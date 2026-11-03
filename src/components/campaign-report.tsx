@@ -5,13 +5,14 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Alert, Badge, Button, Card, CardHeader, ProgressBar, StatCard, Table, Td, Th } from "./ui";
 import { IconCursor, IconEye, IconPause, IconPlay, IconSend } from "./icons";
-import { CAMPAIGN_STATUS, RECIPIENT_STATUS_LABELS, type RecipientStatus } from "@/lib/constants";
+import { CAMPAIGN_KIND, CAMPAIGN_STATUS, RECIPIENT_STATUS_LABELS, type RecipientStatus } from "@/lib/constants";
 import { formatDateTime, formatNumber, formatPercent, rate } from "@/lib/utils";
 
 export type ReportCampaign = {
   id: string;
   name: string;
   status: string;
+  kind: string;
   totalRecipients: number;
   sentCount: number;
   failedCount: number;
@@ -49,6 +50,7 @@ export function CampaignReport({
   const [filter, setFilter] = useState<string>("");
 
   const isSending = campaign.status === CAMPAIGN_STATUS.SENDING;
+  const isAutomation = campaign.kind === CAMPAIGN_KIND.AUTOMATION;
 
   // Mientras se está enviando, refrescar cada 15 s mantiene el progreso al día
   // sin necesidad de recargar a mano.
@@ -119,13 +121,19 @@ export function CampaignReport({
         />
       </div>
 
-      {isSending || pendingCount > 0 ? (
+      {isSending || pendingCount > 0 || isAutomation ? (
         <Card className="p-5">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div className="min-w-0 flex-1">
               <div className="mb-2 flex items-baseline justify-between text-sm">
                 <span className="font-medium">
-                  {isSending ? "Enviando…" : "Envío pausado"}{" "}
+                  {isAutomation
+                    ? isSending
+                      ? "Automatización activa"
+                      : "Automatización pausada"
+                    : isSending
+                      ? "Enviando…"
+                      : "Envío pausado"}{" "}
                   <span className="text-xs font-normal text-ink-faint">
                     quedan {formatNumber(pendingCount)} en cola
                   </span>
@@ -157,7 +165,13 @@ export function CampaignReport({
             </div>
           </div>
 
-          {isSending ? (
+          {isAutomation ? (
+            <p className="mt-3 text-xs text-ink-faint">
+              {isSending
+                ? "Cada lead nuevo recibe la bienvenida en cuanto llega y los seguimientos según su espera. Para cambiar los correos, pausa la automatización: los leads que entren mientras tanto esperan en la cola."
+                : "Mientras está pausada se pueden editar los correos y la secuencia. Los leads siguen entrando y saldrán al reanudarla."}
+            </p>
+          ) : isSending ? (
             <p className="mt-3 text-xs text-ink-faint">
               El envío continúa en segundo plano aunque cierres esta página, al ritmo configurado y respetando la cuota
               diaria de Gmail.

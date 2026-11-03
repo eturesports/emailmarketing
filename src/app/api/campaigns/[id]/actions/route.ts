@@ -4,7 +4,7 @@ import { prisma } from "@/lib/db";
 import { ApiError, requireApiUser } from "@/lib/auth";
 import { handleApi } from "@/lib/api";
 import { isValidEmail, normalizeEmail } from "@/lib/utils";
-import { CAMPAIGN_STATUS, RECIPIENT_STATUS } from "@/lib/constants";
+import { CAMPAIGN_KIND, CAMPAIGN_STATUS, RECIPIENT_STATUS } from "@/lib/constants";
 import { buildQueue, getPoolCapacity, processCampaign, sendTestEmail } from "@/lib/sender";
 
 export const dynamic = "force-dynamic";
@@ -58,8 +58,10 @@ export async function POST(request: NextRequest, { params }: Params) {
       case "send": {
         assertReadyToSend(campaign);
         const queue = await buildQueue(id);
+        const automation = campaign.kind === CAMPAIGN_KIND.AUTOMATION;
 
-        if (queue.total === 0) {
+        // Una automatización se activa vacía: los leads irán entrando.
+        if (queue.total === 0 && !automation) {
           throw new ApiError(400, "No hay destinatarios: las listas seleccionadas están vacías o todos están de baja.");
         }
 
@@ -87,7 +89,7 @@ export async function POST(request: NextRequest, { params }: Params) {
           result,
           capacity,
           warning:
-            capacity.totalRemaining < queue.total
+            !automation && capacity.totalRemaining < queue.total
               ? `La capacidad actual (${capacity.totalRemaining} envíos entre ${capacity.senders.length} cuenta(s)) no cubre los ${queue.total} destinatarios. El resto saldrá según se libere cuota. Para acabar antes, añade cuentas al grupo de remitentes o pásalas al relay SMTP.`
               : null,
         };
@@ -95,6 +97,9 @@ export async function POST(request: NextRequest, { params }: Params) {
 
       case "schedule": {
         assertReadyToSend(campaign);
+        if (campaign.kind === CAMPAIGN_KIND.AUTOMATION) {
+          throw new ApiError(400, "Una automatización no se programa: se activa y envía a cada lead según llega.");
+        }
 
         const scheduledAt = new Date(body.scheduledAt);
         if (Number.isNaN(scheduledAt.getTime())) throw new ApiError(400, "La fecha programada no es válida.");
@@ -171,10 +176,18 @@ export async function POST(request: NextRequest, { params }: Params) {
   });
 }
 
-function assertReadyToSend(campaign: { status: string; subject: string; html: string; lists: unknown[] }): void {
+function assertReadyToSend(campaign: {
+  status: string;
+  kind: string;
+  subject: string;
+  html: string;
+  lists: unknown[];
+}): void {
   if (campaign.status === CAMPAIGN_STATUS.SENDING) throw new ApiError(409, "La campaña ya se está enviando.");
   if (campaign.status === CAMPAIGN_STATUS.SENT) throw new ApiError(409, "Esta campaña ya se envió.");
   if (!campaign.subject.trim()) throw new ApiError(400, "La campaña necesita un asunto.");
   if (!campaign.html.trim()) throw new ApiError(400, "La campaña necesita un contenido.");
-  if (campaign.lists.length === 0) throw new ApiError(400, "Selecciona al menos una lista de contactos.");
+  if (campaign.kind !== CAMPAIGN_KIND.AUTOMATION && campaign.lists.length === 0) {
+    throw new ApiError(400, "Selecciona al menos una lista de contactos.");
+  }
 }

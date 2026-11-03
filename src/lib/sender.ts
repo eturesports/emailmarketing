@@ -1,6 +1,7 @@
 import type { Campaign, Contact, Recipient, Sender, SequenceStep, User } from "@prisma/client";
 import { prisma } from "./db";
 import {
+  CAMPAIGN_KIND,
   CAMPAIGN_STATUS,
   CONTACT_STATUS,
   EVENT_TYPE,
@@ -16,6 +17,7 @@ import { openTransport, transportReadiness, type SendContext, type SenderWithUse
 import { getCapacity, quotaKeyFor, recordSend, type SenderCapacity } from "./quota";
 import { getTrackingBaseUrl } from "./settings";
 import { VERIFICATION } from "./verify";
+import { retryPendingLeads } from "./leads";
 import { env } from "./env";
 
 /**
@@ -36,7 +38,14 @@ import { env } from "./env";
  */
 
 const MAX_ATTEMPTS = 3;
-const INITIAL_STEP_KEY = "initial";
+export const INITIAL_STEP_KEY = "initial";
+
+/**
+ * Tiempo tras el cual un mensaje reclamado (SENDING) y no resuelto se da por
+ * huérfano y vuelve a la cola. Holgado respecto a la duración máxima de una
+ * pasada (300 s), para no devolver a la cola algo que sigue enviándose.
+ */
+const CLAIM_TTL_MS = 15 * 60_000;
 
 /** Dominio con el que se firman los Message-ID que generamos. */
 function messageDomain(): string {
@@ -81,6 +90,13 @@ export async function buildQueue(campaignId: string): Promise<BuildQueueResult> 
     include: { lists: true },
   });
   if (!campaign) throw new Error("La campaña no existe.");
+
+  // Una automatización no tiene listas: sus destinatarios entran de uno en uno
+  // (ver lib/leads.ts). Sólo se devuelve el recuento de los que ya están.
+  if (campaign.kind === CAMPAIGN_KIND.AUTOMATION) {
+    const total = await prisma.recipient.count({ where: { campaignId, stepKey: INITIAL_STEP_KEY } });
+    return { added: 0, skippedUnsubscribed: 0, skippedBounced: 0, skippedInvalid: 0, alreadyQueued: total, total };
+  }
 
   const listIds = campaign.lists.map((entry) => entry.listId);
   if (listIds.length === 0) {
@@ -514,6 +530,16 @@ export async function processCampaign(campaignId: string, batchSize = env.cronBa
 
       const picked = pickSlot(slots, cursor, message.senderId);
       if (!picked) break; // todos los remitentes agotados o caídos en esta pasada
+
+      // Se reclama el mensaje antes de enviarlo: si otra pasada lo ha cogido
+      // entretanto (el cron y el envío inmediato de un lead pueden solaparse),
+      // sólo una de las dos lo envía.
+      const claimed = await prisma.recipient.updateMany({
+        where: { id: message.id, status: RECIPIENT_STATUS.PENDING },
+        data: { status: RECIPIENT_STATUS.SENDING, lockedAt: new Date() },
+      });
+      if (claimed.count === 0) continue;
+
       cursor = picked.index + 1;
 
       const slot = picked.slot;
@@ -526,10 +552,16 @@ export async function processCampaign(campaignId: string, batchSize = env.cronBa
           slot.context = await openTransport(sender);
         } catch (error) {
           slot.disabled = true;
-          await prisma.campaign.update({
-            where: { id: campaignId },
-            data: { lastError: describeError(error) },
-          });
+          await prisma.$transaction([
+            prisma.recipient.update({
+              where: { id: message.id },
+              data: { status: RECIPIENT_STATUS.PENDING, lockedAt: null },
+            }),
+            prisma.campaign.update({
+              where: { id: campaignId },
+              data: { lastError: describeError(error) },
+            }),
+          ]);
           continue;
         }
       }
@@ -566,6 +598,7 @@ export async function processCampaign(campaignId: string, batchSize = env.cronBa
             where: { id: message.id },
             data: {
               status: RECIPIENT_STATUS.SENT,
+              lockedAt: null,
               sentAt: new Date(),
               senderId: sender.id,
               gmailMessageId: result.messageId || null,
@@ -596,6 +629,7 @@ export async function processCampaign(campaignId: string, batchSize = env.cronBa
           where: { id: message.id },
           data: {
             status: giveUp ? RECIPIENT_STATUS.FAILED : RECIPIENT_STATUS.PENDING,
+            lockedAt: null,
             attempts,
             error: `[${sender.fromEmail}] ${classified.message}`,
           },
@@ -714,6 +748,9 @@ async function finalizeIfComplete(campaignId: string): Promise<void> {
   const campaign = await prisma.campaign.findUnique({ where: { id: campaignId } });
   if (!campaign || campaign.status !== CAMPAIGN_STATUS.SENDING) return;
 
+  // Una automatización activa nunca termina: mañana puede entrar otro lead.
+  if (campaign.kind === CAMPAIGN_KIND.AUTOMATION) return;
+
   await prisma.campaign.update({
     where: { id: campaignId },
     data: { status: CAMPAIGN_STATUS.SENT, completedAt: new Date() },
@@ -724,6 +761,8 @@ async function finalizeIfComplete(campaignId: string): Promise<void> {
 
 export type CronResult = {
   activated: string[];
+  /** Leads que estaban pendientes de procesar y se han reintentado. */
+  leadsRetried: number;
   followUps: FollowUpResult[];
   processed: ProcessResult[];
 };
@@ -735,6 +774,8 @@ export type CronResult = {
  */
 export async function runQueue(batchSize = env.cronBatchSize): Promise<CronResult> {
   const now = new Date();
+
+  await releaseStaleClaims(now);
 
   const due = await prisma.campaign.findMany({
     where: { status: CAMPAIGN_STATUS.SCHEDULED, scheduledAt: { lte: now } },
@@ -749,6 +790,15 @@ export async function runQueue(batchSize = env.cronBatchSize): Promise<CronResul
       data: { status: CAMPAIGN_STATUS.SENDING, startedAt: new Date(), lastError: null },
     });
     activated.push(campaign.id);
+  }
+
+  // Leads que se quedaron a medias (Meta no respondió, token caducado…): se
+  // reintentan antes de vaciar la cola para que su bienvenida salga ya.
+  let leadsRetried = 0;
+  try {
+    leadsRetried = (await retryPendingLeads()).length;
+  } catch (error) {
+    console.error("[worker] al reintentar leads:", describeError(error));
   }
 
   // Los seguimientos se encolan antes de procesar, para que entren en esta
@@ -785,7 +835,22 @@ export async function runQueue(batchSize = env.cronBatchSize): Promise<CronResul
     }
   }
 
-  return { activated, followUps, processed };
+  return { activated, leadsRetried, followUps, processed };
+}
+
+/**
+ * Devuelve a la cola los mensajes reclamados por una pasada que murió antes de
+ * resolverlos (un timeout de la función, un reinicio del servidor…).
+ */
+export async function releaseStaleClaims(now = new Date()): Promise<number> {
+  const { count } = await prisma.recipient.updateMany({
+    where: {
+      status: RECIPIENT_STATUS.SENDING,
+      OR: [{ lockedAt: null }, { lockedAt: { lt: new Date(now.getTime() - CLAIM_TTL_MS) } }],
+    },
+    data: { status: RECIPIENT_STATUS.PENDING, lockedAt: null },
+  });
+  return count;
 }
 
 // --- Envío de prueba ---------------------------------------------------------

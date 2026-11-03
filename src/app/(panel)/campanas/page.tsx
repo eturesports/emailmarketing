@@ -2,9 +2,9 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { prisma } from "@/lib/db";
 import { requireUser } from "@/lib/auth";
-import { Card, EmptyState, LinkButton, PageHeader, ProgressBar, StatusBadge } from "@/components/ui";
+import { Badge, Card, EmptyState, LinkButton, PageHeader, ProgressBar, StatusBadge } from "@/components/ui";
 import { IconMail, IconPlus } from "@/components/icons";
-import { CAMPAIGN_STATUS, CAMPAIGN_STATUS_LABELS, type CampaignStatus } from "@/lib/constants";
+import { CAMPAIGN_KIND, CAMPAIGN_STATUS, campaignStatusLabel } from "@/lib/constants";
 import { formatNumber, formatPercent, formatRelative, rate } from "@/lib/utils";
 
 export const metadata: Metadata = { title: "Campañas" };
@@ -81,6 +81,7 @@ export default async function CampaignsPage({ searchParams }: { searchParams: Pr
       ) : (
         <div className="space-y-3">
           {campaigns.map((campaign) => {
+            const isAutomation = campaign.kind === CAMPAIGN_KIND.AUTOMATION;
             const isSending = campaign.status === CAMPAIGN_STATUS.SENDING;
             const isSent = campaign.status === CAMPAIGN_STATUS.SENT;
 
@@ -94,8 +95,9 @@ export default async function CampaignsPage({ searchParams }: { searchParams: Pr
                         <StatusBadge
                           status={campaign.status}
                           kind="campaign"
-                          label={CAMPAIGN_STATUS_LABELS[campaign.status as CampaignStatus] ?? campaign.status}
+                          label={campaignStatusLabel(campaign.status, campaign.kind)}
                         />
+                        {isAutomation ? <Badge tone="brand">Automatización</Badge> : null}
                       </div>
 
                       <p className="mt-1 truncate text-sm text-ink-muted">
@@ -127,7 +129,7 @@ export default async function CampaignsPage({ searchParams }: { searchParams: Pr
                       </div>
                     </div>
 
-                    {isSent || isSending ? (
+                    {isSent || isSending || (isAutomation && campaign.sentCount > 0) ? (
                       <dl className="flex shrink-0 gap-5 text-right">
                         <div>
                           <dt className="text-[10px] uppercase tracking-wide text-ink-faint">Enviados</dt>
@@ -149,7 +151,7 @@ export default async function CampaignsPage({ searchParams }: { searchParams: Pr
                     ) : null}
                   </div>
 
-                  {isSending ? (
+                  {isSending && !isAutomation ? (
                     <div className="mt-4">
                       <ProgressBar
                         value={campaign.sentCount}

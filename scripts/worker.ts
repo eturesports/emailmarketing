@@ -31,6 +31,9 @@ async function pass(): Promise<void> {
     if (result.activated.length > 0) {
       console.log(`[worker] campañas activadas: ${result.activated.join(", ")}`);
     }
+    if (result.leadsRetried > 0) {
+      console.log(`[worker] ${result.leadsRetried} lead(s) reintentados`);
+    }
     for (const entry of result.followUps) {
       console.log(`[worker] ${entry.created} seguimiento(s) encolados (campaña ${entry.campaignId})`);
     }

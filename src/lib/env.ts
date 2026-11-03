@@ -62,6 +62,25 @@ export const env = {
     const parsed = Number.parseInt(optional("CRON_BATCH_SIZE", "40"), 10);
     return Number.isFinite(parsed) && parsed > 0 ? parsed : 40;
   },
+  /** Clave secreta de la app de Meta: firma las notificaciones del webhook. */
+  get metaAppSecret(): string {
+    return optional("META_APP_SECRET");
+  },
+  /** Token que se escribe en Meta al suscribir el webhook (hub.verify_token). */
+  get metaVerifyToken(): string {
+    return optional("META_VERIFY_TOKEN");
+  },
+  /** Token de acceso con permiso `leads_retrieval` (usuario del sistema o página). */
+  get metaAccessToken(): string {
+    return optional("META_ACCESS_TOKEN");
+  },
+  get metaGraphVersion(): string {
+    return optional("META_GRAPH_VERSION", "v23.0");
+  },
+  /** Clave del endpoint genérico /api/leads (Zapier, Make, n8n…). */
+  get leadsApiKey(): string {
+    return optional("LEADS_API_KEY");
+  },
   get isProduction(): boolean {
     return process.env.NODE_ENV === "production";
   },

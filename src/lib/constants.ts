@@ -37,6 +37,26 @@ export const CAMPAIGN_STATUS_LABELS: Record<CampaignStatus, string> = {
   FAILED: "Fallida",
 };
 
+export const CAMPAIGN_KIND = {
+  /** Se envía una vez a las listas elegidas. */
+  BROADCAST: "BROADCAST",
+  /** Siempre encendida: los contactos entran de uno en uno (leads). */
+  AUTOMATION: "AUTOMATION",
+} as const;
+export type CampaignKind = (typeof CAMPAIGN_KIND)[keyof typeof CAMPAIGN_KIND];
+
+/**
+ * Etiqueta del estado de una campaña según su tipo: una automatización en
+ * SENDING no «se está enviando», está activa esperando leads.
+ */
+export function campaignStatusLabel(status: string, kind: string): string {
+  if (kind === CAMPAIGN_KIND.AUTOMATION) {
+    if (status === CAMPAIGN_STATUS.SENDING) return "Activa";
+    if (status === CAMPAIGN_STATUS.DRAFT) return "Sin activar";
+  }
+  return CAMPAIGN_STATUS_LABELS[status as CampaignStatus] ?? status;
+}
+
 export const RECIPIENT_STATUS = {
   PENDING: "PENDING",
   SENDING: "SENDING",
@@ -102,6 +122,52 @@ export const SEQUENCE_DELAYS = [
 
 /** Tope de pasos por campaña, para que una secuencia no se vuelva spam. */
 export const MAX_SEQUENCE_STEPS = 5;
+
+// ---------------------------------------------------------------------------
+// Leads
+// ---------------------------------------------------------------------------
+
+export const LEAD_PROVIDER = {
+  /** Webhook de Meta Lead Ads (Facebook e Instagram). */
+  META: "META",
+  /** Endpoint genérico /api/leads (Zapier, Make, n8n, formularios propios…). */
+  API: "API",
+} as const;
+
+export const LEAD_STATUS = {
+  /** Recibido, pendiente de procesar (o de reintentar). */
+  PENDING: "PENDING",
+  /** Contacto creado/actualizado y, si procede, dentro de la automatización. */
+  PROCESSED: "PROCESSED",
+  /** Su formulario no está asignado a ningún origen. */
+  UNMATCHED: "UNMATCHED",
+  /** No trae un email utilizable: no hay nada que hacer con él. */
+  INVALID: "INVALID",
+  /** Falló tras agotar los reintentos. */
+  FAILED: "FAILED",
+} as const;
+export type LeadStatus = (typeof LEAD_STATUS)[keyof typeof LEAD_STATUS];
+
+export const LEAD_STATUS_LABELS: Record<LeadStatus, string> = {
+  PENDING: "Pendiente",
+  PROCESSED: "Procesado",
+  UNMATCHED: "Sin asignar",
+  INVALID: "Sin email válido",
+  FAILED: "Error",
+};
+
+export const LEAD_AUDIENCE = {
+  PARENT: "PARENT",
+  PLAYER: "PLAYER",
+  OTHER: "OTHER",
+} as const;
+export type LeadAudience = (typeof LEAD_AUDIENCE)[keyof typeof LEAD_AUDIENCE];
+
+export const LEAD_AUDIENCE_LABELS: Record<LeadAudience, string> = {
+  PARENT: "Padres y madres",
+  PLAYER: "Jugadores (hijos)",
+  OTHER: "Otro",
+};
 
 // ---------------------------------------------------------------------------
 // Comprobación de direcciones
