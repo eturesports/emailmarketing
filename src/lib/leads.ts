@@ -97,6 +97,14 @@ const NAME_PARTICLES = new Set(["de", "del", "la", "las", "los", "y", "i", "da",
  */
 export function cleanPersonName(raw: string | null | undefined): string | null {
   if (!raw) return null;
+
+  // Letras «decorativas» de perfil (𝕵𝖊𝖕𝖍𝖙𝖊, 𝒜𝓌𝓈𝒸𝓊𝓇): casi siempre son un apodo,
+  // no el nombre de la persona.
+  if (/[\u{1D400}-\u{1D7FF}]/u.test(raw)) return null;
+
+  // Un número suelto detrás del nombre es el dorsal («Ryan 14», «Christ #10»):
+  // se quita y se queda el nombre. Un número pegado («Rich43») no se arregla.
+  raw = raw.replace(/\s#?\d+\b/g, " ").replace(/#\d+\b/g, "");
   if (/[\d@_/\\]|https?:/i.test(raw)) return null;
 
   let value = raw
@@ -116,6 +124,9 @@ export function cleanPersonName(raw: string | null | undefined): string | null {
       .map((word, index) =>
         index > 0 && NAME_PARTICLES.has(word)
           ? word
+          : // Dos letras en mayúsculas son iniciales que se usan como nombre («JJ», «AJ»).
+            word.length === 2 && raw.split(/\s+/)[index] === word.toUpperCase()
+            ? word.toUpperCase()
           : word.replace(/(^|[-'’])(\p{L})/gu, (_m, sep: string, letter: string) => sep + letter.toUpperCase()),
       )
       .join(" ");
@@ -134,6 +145,7 @@ const NOT_A_NAME = new Set([
   "mama", "mamá", "papa", "papá", "madre", "padre", "hijo", "hija",
   "soccer", "futbol", "fútbol", "football", "fc", "club", "team", "academy", "official", "oficial",
   "admin", "test", "prueba", "user", "usuario", "unknown", "na", "n.a", "none", "no",
+  "ads", "og", "legend", "goat", "king", "queen", "boss", "baller", "crack", "player",
 ]);
 
 /**
