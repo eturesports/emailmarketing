@@ -100,6 +100,80 @@ const TEMPLATES = [
 </div>`,
   },
   {
+    // MLS NEXT Fest 2026: 2–13 de diciembre, Arizona Athletic Grounds y Red
+    // Mountain Park (Mesa, área de Phoenix). Va en inglés porque las familias
+    // de MLS NEXT son de EE. UU. La llamada a la acción es responder al correo:
+    // sale por Gmail y la respuesta cae en el buzón del remitente, sin depender
+    // de un enlace de reservas externo.
+    name: "MLS NEXT Fest Arizona · Let's Meet",
+    category: "Eventos",
+    subject: "{{firstName | Hi}}, let's meet in Arizona at MLS NEXT Fest",
+    previewText: "ETURE Soccer will be in Mesa, Dec 2–13. Grab 20 minutes with our staff.",
+    html: `<div style="${BASE_STYLE}">
+  <div style="background:#0b1f17;padding:32px 24px;border-radius:12px 12px 0 0;text-align:center;">
+    <p style="color:#86efac;font-size:12px;letter-spacing:2px;text-transform:uppercase;margin:0 0 8px;">MLS NEXT Fest · Mesa, AZ · Dec 2–13</p>
+    <h1 style="color:#ffffff;font-size:28px;line-height:1.2;margin:0;">ETURE SOCCER<br />Let's Meet in Arizona</h1>
+  </div>
+  <div style="border:1px solid #e5e7eb;border-top:0;border-radius:0 0 12px 12px;padding:28px 24px;">
+    <p style="margin:0 0 16px;">Hi {{firstName | there}},</p>
+    <p style="margin:0 0 16px;color:#374151;">
+      Our team will be at <strong>MLS NEXT Fest in Mesa, Arizona</strong> from
+      <strong>December 2 to 13</strong>, watching games at Arizona Athletic Grounds and Red Mountain Park.
+    </p>
+    <p style="margin:0 0 16px;color:#374151;">
+      While we're there, we'd love to sit down with you and your player for a relaxed,
+      no-commitment conversation: where they are today, what they want from the next few
+      years, and whether one of our programs could help them get there.
+    </p>
+
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:24px 0;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;">
+      <tr>
+        <td style="padding:20px;">
+          <p style="margin:0 0 12px;font-weight:bold;color:#14532d;">In 20 minutes we can talk about</p>
+          <p style="margin:0 0 6px;color:#374151;">• Our gap-year program in Valencia, Spain: full-time professional training in a European football environment</p>
+          <p style="margin:0 0 6px;color:#374151;">• How players keep their college eligibility while they train with us</p>
+          <p style="margin:0 0 6px;color:#374151;">• The path from ETURE to NCAA rosters, and how we support recruiting</p>
+          <p style="margin:0;color:#374151;">• Your questions: timing, academics, cost and what a typical year looks like</p>
+        </td>
+      </tr>
+    </table>
+
+    <p style="margin:0 0 8px;font-weight:bold;">Setting it up is easy</p>
+    <p style="margin:0 0 24px;color:#374151;">
+      Just <strong>reply to this email</strong> with the days you'll be in Mesa and your player's
+      age group. We'll fit around your game schedule and meet you right at the fields.
+    </p>
+
+    <p style="margin:0 0 28px;text-align:center;">
+      <a href="https://eturesports.com" style="display:inline-block;background:#15803d;color:#ffffff;text-decoration:none;padding:13px 26px;border-radius:8px;font-weight:bold;">Learn more about ETURE</a>
+    </p>
+
+    <p style="margin:0 0 16px;color:#374151;">Spots during the event are limited, so the sooner you reply, the easier it is to find a time that works.</p>
+    <p style="margin:0;color:#6b7280;font-size:13px;">See you in Arizona,<br />The ETURE Soccer team</p>
+  </div>
+</div>`,
+  },
+  {
+    // Seguimiento para la secuencia: 4–5 días después, a quien no abrió o no respondió.
+    name: "MLS NEXT Fest Arizona · Recordatorio",
+    category: "Eventos",
+    subject: "Still time to meet us in Mesa, {{firstName | there}}?",
+    previewText: "We're at MLS NEXT Fest Dec 2–13. Reply with your dates.",
+    html: `<div style="${BASE_STYLE}">
+  <p style="margin:0 0 16px;">Hi {{firstName | there}},</p>
+  <p style="margin:0 0 16px;color:#374151;">
+    A quick follow-up: the ETURE Soccer team will be at <strong>MLS NEXT Fest in Mesa (Dec 2–13)</strong>
+    and we're putting together our meeting schedule this week.
+  </p>
+  <p style="margin:0 0 16px;color:#374151;">
+    If you'd like 20 minutes to hear how our gap-year program in Spain helps players develop
+    and reach college soccer, without losing eligibility, just reply with the days you'll be there.
+    We'll come to you between games.
+  </p>
+  <p style="margin:0;color:#6b7280;font-size:13px;">Hope to see you at the fields,<br />The ETURE Soccer team</p>
+</div>`,
+  },
+  {
     name: "Aviso corto",
     category: "General",
     subject: "{{firstName}}, información importante",
