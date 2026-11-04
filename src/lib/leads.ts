@@ -125,6 +125,42 @@ export function cleanPersonName(raw: string | null | undefined): string | null {
 }
 
 /**
+ * Palabras que delatan que el «nombre» del perfil no es el de la persona: «Soccer
+ * Mom», «Jake's Dad», «Familia García», «Eture FC»… Si aparece alguna, no se
+ * saluda por el nombre: es mejor «Hola family» que «Hola Soccer».
+ */
+const NOT_A_NAME = new Set([
+  "mom", "mommy", "mother", "dad", "daddy", "father", "parent", "parents", "family", "familia",
+  "mama", "mamá", "papa", "papá", "madre", "padre", "hijo", "hija",
+  "soccer", "futbol", "fútbol", "football", "fc", "club", "team", "academy", "official", "oficial",
+  "admin", "test", "prueba", "user", "usuario", "unknown", "na", "n.a", "none", "no",
+]);
+
+/**
+ * Nombre con el que saludar, o null si no hay uno claro.
+ *
+ * Más exigente que `cleanPersonName`, porque el saludo es lo primero que se lee:
+ * una inicial suelta («J.»), un apodo de perfil («Soccer Mom») o una sola letra
+ * dan un «Hola J.,» peor que el «Hola family,» de la plantilla.
+ */
+export function greetingName(firstName: string | null, fullName?: string | null): string | null {
+  if (!firstName) return null;
+
+  const words = `${firstName} ${fullName ?? ""}`
+    .toLowerCase()
+    .split(/[\s'’-]+/)
+    .map((word) => word.replace(/\.$/, ""))
+    .filter(Boolean);
+  if (words.some((word) => NOT_A_NAME.has(word))) return null;
+
+  // Cada palabra del nombre de pila tiene que ser algo más que una inicial.
+  const parts = firstName.split(" ").filter(Boolean);
+  if (parts.some((part) => part.replace(/\./g, "").length < 2)) return null;
+
+  return firstName;
+}
+
+/**
  * Separa «nombre apellidos». Con cuatro palabras o más se asume nombre
  * compuesto («María José García López» → «María José»), que es lo habitual en
  * España; con menos, la primera palabra es el nombre.
@@ -171,6 +207,12 @@ export function personFromFields(fields: Record<string, string>): LeadPerson {
       firstName = split.firstName;
       lastName = lastName ?? split.lastName;
     }
+  }
+
+  // Sin un nombre claro no se guarda nombre de pila: la plantilla saluda con su
+  // comodín («Hola family») y el panel no muestra un nombre engañoso.
+  if (!greetingName(firstName, known.fullName ?? known.lastName)) {
+    firstName = null;
   }
 
   return {

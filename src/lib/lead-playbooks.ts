@@ -15,9 +15,10 @@
  * Padres y jugadores reciben correos distintos. A la familia se le habla de la
  * llamada con los padres; al jugador, de lo que le piden los entrenadores.
  *
- * El saludo lleva siempre valor por defecto (`{{firstName | family}}`): el
- * nombre del lead viene del perfil de Facebook o Instagram y a veces no existe
- * o no es fiable (ver `cleanPersonName` en lib/leads.ts).
+ * Todos los correos saludan igual que Tommy: «Hola Jennifer,» y, cuando no hay
+ * un nombre claro, «Hola family,» (`{{firstName | family}}`). El nombre viene
+ * del perfil de Facebook o Instagram y a menudo no sirve para saludar («Soccer
+ * Mom», «J. Smith»…); ver `greetingName` en lib/leads.ts.
  *
  * Es un fichero sin dependencias a propósito: lo usan tanto la aplicación
  * como `prisma/seed.ts`.
@@ -94,7 +95,7 @@ const PARENT: Playbook = {
       condition: "NO_CLICK",
       subject: "",
       html: wrap([
-        `Hi {{firstName | family}},`,
+        `Hola {{firstName | family}},`,
         `Just bringing this back to the top of your inbox. On a first call we usually cover what a season in Spain looks like day to day, how college coaches get to see our players, and what the next steps would be for your player.`,
         `If that sounds useful, ${link(LEAD_BOOKING_URL, "pick whatever time works for you")}.`,
         `Vamos Toros!`,
@@ -105,7 +106,7 @@ const PARENT: Playbook = {
       condition: "NO_CLICK",
       subject: "",
       html: wrap([
-        `Hi {{firstName | family}},`,
+        `Hola {{firstName | family}},`,
         `I don’t want to crowd your inbox, so this is my last note for now.`,
         `If it’s easier than a call, just reply with your player’s <strong>graduation year, position and current club</strong>, and I’ll get back to you personally on whether we think the program is a good fit.`,
       ]),
@@ -126,7 +127,7 @@ const PLAYER: Playbook = {
   subject: "{{firstName | Hey}}, quick hello from Tommy at ETURE",
   previewText: "From Spain to college soccer in the NCAA",
   html: wrap([
-    `Hey {{firstName | there}},`,
+    `Hola {{firstName | family}},`,
     `I’m Tommy Thompson. I played in MLS for 11 years and I am now a director here at ETURE. Thanks for reaching out!`,
     `We run a soccer-specific study abroad program in Spain to help players like you get recruited to D1, D2 and D3 in the NCAA (700+ players placed over the last decade). ${link(LEAD_CATALOG_URL, "Here is the full program catalog")}.`,
     `The best next step is a quick call with you and your parents, so we can hear about your game and your goals. ${link(LEAD_BOOKING_URL, "You can book one here")}.`,
@@ -138,7 +139,7 @@ const PLAYER: Playbook = {
       condition: "NO_CLICK",
       subject: "",
       html: wrap([
-        `Hey {{firstName | there}},`,
+        `Hola {{firstName | family}},`,
         `One tip from the recruiting side: college coaches usually watch the highlight video before anything else, and they decide fast. Put your best clips in the first 30 seconds and make it easy to spot which player you are.`,
         `If you already have a highlight video, reply with the link and I’ll take a look. If you don’t, no problem, that’s something we help with.`,
         `Vamos Toros!`,
@@ -149,7 +150,7 @@ const PLAYER: Playbook = {
       condition: "NO_CLICK",
       subject: "",
       html: wrap([
-        `Hey {{firstName | there}},`,
+        `Hola {{firstName | family}},`,
         `Last note from me for now. Reply with your <strong>graduation year, position and current club</strong>, and I’ll let you know honestly what options we see for you.`,
         `And if your parents want to talk it through, ${link(LEAD_BOOKING_URL, "they can book a call here")}.`,
       ]),
