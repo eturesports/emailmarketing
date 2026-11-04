@@ -292,6 +292,14 @@ minutos un correo de bienvenida **con su nombre** y, después, sus seguimientos.
 Padres y jugadores tienen **correos distintos**, porque llegan con preguntas
 distintas.
 
+Los leads son familias de Estados Unidos, así que los correos van **en inglés y
+firmados por Tommy Thompson** (Director of Talent ID), con el mismo estilo que
+el correo que envía a mano: texto personal, sin maquetación, con enlace al
+catálogo (`recruit.eturesports.com`) y a la reserva de llamada
+(`eturesports.com/book-a-call`). Conviene que el remitente de las
+automatizaciones sea Tommy, con su buzón como dirección de respuesta: los
+correos invitan a contestar.
+
 ```
 Formulario de Meta ─▶ /api/webhooks/meta ─▶ origen (padres | hijos)
                                              ├─ contacto + lista del origen
@@ -306,8 +314,8 @@ automatización van sus leads. Vienen dos de serie (`npm run db:seed`):
 
 | Origen | Identificador | Lista | Correos |
 | --- | --- | --- | --- |
-| Padres | `padres` | Leads Meta · Padres | Coste, estudios, acompañamiento. Saludo «Hola, familia» si no hay nombre |
-| Hijos (jugadores) | `hijos` | Leads Meta · Jugadores | Vídeo, nivel, qué piden los entrenadores. Saludo «Hola, crack» |
+| Padres | `padres` | Leads Meta · Padres | Presentación de Tommy, catálogo y llamada con la familia. «Hola family» si no hay nombre |
+| Hijos (jugadores) | `hijos` | Leads Meta · Jugadores | Lo mismo hablando al jugador, más el vídeo de highlights. «Hey there» si no hay nombre |
 
 Una **automatización** es una campaña que no se envía una vez a unas listas:
 está siempre activa y los contactos entran de uno en uno. Se edita igual que
@@ -316,9 +324,8 @@ retocarla; los leads que entran mientras tanto esperan en la cola.
 
 En **Leads**, cada origen tiene un botón *Crear automatización con los correos
 de padres/jugadores*, que la deja en borrador con la bienvenida y dos
-seguimientos (a quien no hizo clic, a los 2 y a los 5 días). Revisa los textos
-y el enlace de los botones (por defecto `https://eturesports.com`) y pulsa
-**Activar automatización**.
+seguimientos (a quien no hizo clic, a los 2 y a los 5 días, en el mismo hilo).
+Revisa los textos y pulsa **Activar automatización**.
 
 ### Personalización
 
@@ -326,7 +333,7 @@ y el enlace de los botones (por defecto `https://eturesports.com`) y pulsa
   limpia antes de usarlo: «JUAN PÉREZ» pasa a «Juan Pérez», y «María José García
   López» saluda como «María José». Si no es fiable (números, emojis, «Mamá de
   Lucas 10») se descarta y el correo usa su valor por defecto:
-  `{{firstName | familia}}`.
+  `{{firstName | family}}`.
 - Las preguntas personalizadas del formulario (edad, posición…) quedan como
   campos del contacto y se pueden usar como etiqueta, p. ej. `{{posicion}}`.
   Además se guardan `{{origenLead}}`, `{{anuncioMeta}}` y `{{campanaMeta}}`.

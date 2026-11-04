@@ -93,7 +93,7 @@ const NAME_PARTICLES = new Set(["de", "del", "la", "las", "los", "y", "i", "da",
  * El nombre de un lead de Meta sale del perfil de Facebook o Instagram, y ahí
  * hay de todo: «JUAN», «juan perez», «Juan 🔥», «Mamá de Lucas 10»… Un saludo
  * con un nombre raro queda peor que uno genérico, así que ante la duda se
- * descarta y la plantilla usa su valor por defecto (`{{firstName | familia}}`).
+ * descarta y la plantilla usa su valor por defecto (`{{firstName | family}}`).
  */
 export function cleanPersonName(raw: string | null | undefined): string | null {
   if (!raw) return null;
