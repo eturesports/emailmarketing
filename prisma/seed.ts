@@ -7,6 +7,7 @@
  */
 
 import { PrismaClient } from "@prisma/client";
+import { SHOWCASE_2027_ISSUES, SHOWCASE_CATEGORY } from "./campaigns/showcase-2027";
 
 const prisma = new PrismaClient();
 
@@ -15,11 +16,23 @@ const LISTS = [
   { name: "Prensa y medios", description: "Periodistas y medios de esports.", color: "#818cf8" },
   { name: "Patrocinadores", description: "Contactos comerciales y marcas.", color: "#34d399" },
   { name: "Jugadores y staff", description: "Equipos, entrenadores y personal.", color: "#fbbf24" },
+  {
+    name: "Showcase 2027 · Entrenadores",
+    description: "Entrenadores universitarios (NCAA, NAIA, NJCAA) que reciben The Coach Brief.",
+    color: "#9f1b20",
+  },
+  {
+    name: "Showcase 2027 · Registrados",
+    description: "Ya registrados en el Showcase: se retiran de «Entrenadores» antes de cada envío.",
+    color: "#64748b",
+  },
 ];
 
 const BASE_STYLE = "font-family:Arial,Helvetica,sans-serif;font-size:15px;line-height:1.6;color:#111827;max-width:600px;margin:0 auto;";
 
-const TEMPLATES = [
+type SeedTemplate = { name: string; category: string; subject: string; previewText: string; html: string };
+
+const TEMPLATES: SeedTemplate[] = [
   {
     name: "Newsletter mensual",
     category: "Newsletter",
@@ -128,6 +141,23 @@ async function main(): Promise<void> {
     await prisma.template.create({ data: template });
   }
   console.log(`✔ ${TEMPLATES.length} plantillas listas`);
+
+  // La serie del Showcase sí se actualiza si ya existe: el contenido vive en
+  // prisma/campaigns/showcase-2027.ts y la plantilla debe reflejarlo. Las
+  // campañas ya creadas no se tocan, porque copian el HTML al crearse.
+  for (const issue of SHOWCASE_2027_ISSUES) {
+    const data = {
+      name: issue.name,
+      category: SHOWCASE_CATEGORY,
+      subject: issue.subject,
+      previewText: issue.previewText,
+      html: issue.html,
+    };
+    const existing = await prisma.template.findFirst({ where: { name: issue.name } });
+    if (existing) await prisma.template.update({ where: { id: existing.id }, data });
+    else await prisma.template.create({ data });
+  }
+  console.log(`✔ ${SHOWCASE_2027_ISSUES.length} plantillas de «${SHOWCASE_CATEGORY}» listas`);
 
   console.log("\nSemilla completada. Arranca la aplicación con `npm run dev` y entra con tu cuenta de Google.");
 }
