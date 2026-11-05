@@ -208,7 +208,7 @@ function issue1(): ShowcaseIssue {
             h2("Europe's largest college soccer showcase is 90 days away."),
             p("Hi {{firstName | Coach}},"),
             p(
-              "This is the first <strong>Coach Brief</strong>: a short email every two weeks until kickoff, with what you need to decide whether Valencia is worth the trip for {{company | your program}}. Players, logistics, numbers. No filler.",
+              "Here is what you need to decide whether Valencia is worth the trip for {{company | your program}}. Players, logistics, numbers. No filler.",
             ),
             p(
               "The VII edition runs <strong>8–11 February 2027</strong>. Around <strong>150 selected players</strong> from our recruiting agency and our residential academy, four days, one venue.",
@@ -240,7 +240,7 @@ function issue1(): ShowcaseIssue {
             kicker("New for 2027"),
             h2("Valencia is now one stop of a four-country tour."),
             p(
-              "We are co-organising the <strong>European Recruiting Soccer Tour</strong>: Iceland, Spain, Sweden and Denmark, 5–15 February. Add any other stop and your Eture Showcase package drops to <strong>€500 single / €300 per coach sharing</strong>. More on this in a later issue.",
+              "We are co-organising the <strong>European Recruiting Soccer Tour</strong>: Iceland, Spain, Sweden and Denmark, 5–15 February. Add any other stop and your Eture Showcase package drops to <strong>€500 single / €300 per coach sharing</strong>.",
             ),
             button("Register for Valencia", link(REGISTER, n, "cta1")),
             small(`Hotel, meals, transport and every game included, from €300 per coach. <a href="${link(SCHEDULE, n, "schedule")}" style="color:${RED};text-decoration:none;">See the programme →</a>`),
