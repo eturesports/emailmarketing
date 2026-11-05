@@ -247,20 +247,6 @@ function issue1(): ShowcaseIssue {
           ].join(""),
         ),
         image(IMG_STANDS, "College coaches evaluating players from the stands at the Eture Showcase 2026"),
-        section(
-          [
-            kicker("Coming up in The Coach Brief"),
-            rows([
-              ["<strong>24 Nov</strong>&nbsp;&nbsp;Who you will see on the field", "No. 2"],
-              ["<strong>8 Dec</strong>&nbsp;&nbsp;Four days, planned to the minute", "No. 3"],
-              ["<strong>22 Dec</strong>&nbsp;&nbsp;The year in Eture numbers", "No. 4"],
-              ["<strong>5 Jan</strong>&nbsp;&nbsp;One trip, four countries", "No. 5"],
-              ["<strong>19 Jan</strong>&nbsp;&nbsp;The player book", "No. 6"],
-              ["<strong>2 Feb</strong>&nbsp;&nbsp;Final call", "No. 7"],
-            ]),
-          ].join(""),
-          "32px 40px 24px",
-        ),
         closing(n, "See you in Valencia.", "Register your staff, choose your rooms and we take care of the rest."),
       ].join("\n"),
     }),

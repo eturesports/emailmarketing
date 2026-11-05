@@ -26,7 +26,7 @@ rellene el registro en `eturesports.com/showcase#register`.
 
 | Nº | Envío | Asunto | Tema | Días al Showcase |
 |---|---|---|---|---|
-| 1 | mar 10 nov 2026 | 90 days to Valencia: Eture Showcase 2027 | Resumen 2026 (68 programas), novedades 2027, índice de la serie | 90 |
+| 1 | mar 10 nov 2026 | 90 days to Valencia: Eture Showcase 2027 | Resumen 2026 (68 programas), novedades 2027 | 90 |
 | 2 | mar 24 nov 2026 | Who you'll see on the field in Valencia | Perfiles de jugador, fichajes del curso pasado, cifras del otoño 2026 | 76 |
 | 3 | mar 8 dic 2026 | Four days in Valencia, planned to the minute | Programa día a día, paquete y precios, preguntas frecuentes de viaje | 62 |
 | 4 | mar 22 dic 2026 | Our 2026 in numbers (and one thing before the break) | Edición corta de vacaciones; el player book sale en enero | 48 |
