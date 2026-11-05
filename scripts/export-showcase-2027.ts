@@ -1,5 +1,5 @@
 /**
- * Vuelca los números de The Coach Brief (Showcase 2027) a HTML para revisarlos
+ * Vuelca los correos del Showcase 2027 a HTML para revisarlos
  * en el navegador o enviarlos a quien tenga que aprobarlos.
  *
  *   npx tsx scripts/export-showcase-2027.ts

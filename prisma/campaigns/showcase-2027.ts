@@ -42,7 +42,7 @@ function link(path: string, issue: number, content: string): string {
   const params = new URLSearchParams({
     utm_source: "eture-mailer",
     utm_medium: "email",
-    utm_campaign: "showcase-2027-coach-brief",
+    utm_campaign: "showcase-2027-coaches",
     utm_content: `no${issue}-${content}`,
   });
   return `${base}?${params.toString()}${hash ? `#${hash}` : ""}`;
@@ -155,7 +155,6 @@ function shell({ issue, sendDate, preheader, topic, body }: ShellOptions): strin
 <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" style="background:${BG};"><tr><td style="padding:32px 12px;">
 <table role="presentation" align="center" width="100%" border="0" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border:1px solid ${LINE};border-radius:20px;overflow:hidden;">
 <tr><td style="padding:28px 24px 26px;text-align:center;">
-  <p style="font-family:${FONT};font-size:12px;line-height:18px;font-weight:700;letter-spacing:3px;text-transform:uppercase;color:${RED};margin:0 0 14px;">The Coach Brief&nbsp;&nbsp;·&nbsp;&nbsp;No. ${issue}</p>
   <h1 style="font-family:${FONT};font-size:38px;line-height:42px;font-weight:800;letter-spacing:-1px;text-transform:uppercase;color:${INK};margin:0 0 10px;">Eture Showcase 2027</h1>
   <p style="font-family:${FONT};font-size:12px;line-height:18px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:${MUTED};margin:0;">8–11 February&nbsp;&nbsp;·&nbsp;&nbsp;Valencia, Spain&nbsp;&nbsp;·&nbsp;&nbsp;<span style="color:${RED};">${left} days to go</span></p>
   <p style="font-family:${FONT};font-size:14px;line-height:20px;color:${SOFT};margin:14px 0 0;">In this issue: ${topic}</p>
@@ -163,7 +162,7 @@ function shell({ issue, sendDate, preheader, topic, body }: ShellOptions): strin
 ${body}
 <tr><td style="padding:32px 40px 32px;">
   <p style="font-family:${FONT};font-size:15px;line-height:22px;color:${INK};margin:0;"><strong>The Eture Showcase Team</strong><br /><span style="color:${MUTED};">Eture Sports | The Soccer Company</span></p>
-  <p style="font-family:${FONT};font-size:12px;line-height:19px;color:${SOFT};margin:18px 0 0;">Eture Sports · Carretera Ademúz km-12, 46184 Valencia, Spain<br />You are receiving The Coach Brief because you work with college soccer programs we recruit for.</p>
+  <p style="font-family:${FONT};font-size:12px;line-height:19px;color:${SOFT};margin:18px 0 0;">Eture Sports · Carretera Ademúz km-12, 46184 Valencia, Spain<br />You are receiving this because you work with college soccer programs we recruit for.</p>
 </td></tr>
 </table>
 </td></tr></table>
@@ -604,7 +603,7 @@ function issue7(): ShowcaseIssue {
             h2("Six days to kickoff."),
             p("Hi {{firstName | Coach}},"),
             p(
-              "This is the last Coach Brief before the Showcase. If Valencia is still on your list, this is the week to confirm: we need your details to book your room and your pick-up.",
+              "If Valencia is still on your list, this is the week to confirm: we need your details to book your room and your pick-up.",
             ),
             button("Confirm your attendance", link(REGISTER, n, "cta1")),
           ].join(""),

@@ -1,4 +1,4 @@
-# The Coach Brief · Eture Showcase 2027
+# Eture Showcase 2027 · Correos a entrenadores
 
 Newsletter quincenal para entrenadores universitarios hasta el Showcase
 (**8–11 de febrero de 2027, Valencia**). Un único objetivo: que el entrenador
@@ -19,7 +19,7 @@ rellene el registro en `eturesports.com/showcase#register`.
   empezar la jornada, no enterrado bajo el correo de la noche.
 - **Cifras sólo de fuentes verificables**: la invitación de octubre y la base de
   operaciones de Eture (consultada el 5 de noviembre de 2026).
-- **Cada enlace lleva UTM** (`utm_campaign=showcase-2027-coach-brief`,
+- **Cada enlace lleva UTM** (`utm_campaign=showcase-2027-coaches`,
   `utm_content=noN-…`) para saber qué número genera cada registro.
 
 ## Calendario
