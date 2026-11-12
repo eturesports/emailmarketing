@@ -37,13 +37,13 @@ const IMG_PITCH = "https://www.eturesports.com/_next/image?url=%2Fimages%2Fshowc
 
 // --- Enlaces con UTM, para atribuir cada registro a su número ---------------
 
-function link(path: string, issue: number, content: string): string {
+function link(path: string, issue: number | string, content: string): string {
   const [base, hash] = path.split("#");
   const params = new URLSearchParams({
     utm_source: "eture-mailer",
     utm_medium: "email",
     utm_campaign: "showcase-2027-coaches",
-    utm_content: `no${issue}-${content}`,
+    utm_content: `${typeof issue === "number" ? `no${issue}` : issue}-${content}`,
   });
   return `${base}?${params.toString()}${hash ? `#${hash}` : ""}`;
 }
@@ -129,7 +129,7 @@ const box = (inner: string) =>
 const check = (text: string) =>
   `<p style="font-family:${FONT};font-size:15px;line-height:22px;color:${INK};margin:0 0 8px;"><strong style="color:${RED};">✓&nbsp;&nbsp;</strong>${text}</p>`;
 
-function closing(issue: number, headline: string, line: string): string {
+function closing(issue: number | string, headline: string, line: string): string {
   return `<tr><td style="padding:40px;background:${INK};text-align:center;">
   <h2 style="font-family:${FONT};font-size:28px;line-height:34px;font-weight:700;letter-spacing:-0.6px;color:#ffffff;margin:0 0 10px;">${headline}</h2>
   <p style="font-family:${FONT};font-size:16px;line-height:24px;color:#d2d2d7;margin:0 0 24px;">${line}</p>
@@ -141,7 +141,7 @@ function closing(issue: number, headline: string, line: string): string {
 }
 
 type ShellOptions = {
-  issue: number;
+  issue: number | string;
   sendDate: string;
   preheader: string;
   topic: string;
@@ -157,7 +157,7 @@ function shell({ issue, sendDate, preheader, topic, body }: ShellOptions): strin
 <tr><td style="padding:28px 24px 26px;text-align:center;">
   <h1 style="font-family:${FONT};font-size:38px;line-height:42px;font-weight:800;letter-spacing:-1px;text-transform:uppercase;color:${INK};margin:0 0 10px;">Eture Showcase 2027</h1>
   <p style="font-family:${FONT};font-size:12px;line-height:18px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:${MUTED};margin:0;">8–11 February&nbsp;&nbsp;·&nbsp;&nbsp;Valencia, Spain&nbsp;&nbsp;·&nbsp;&nbsp;<span style="color:${RED};">${left} days to go</span></p>
-  <p style="font-family:${FONT};font-size:14px;line-height:20px;color:${SOFT};margin:14px 0 0;">In this issue: ${topic}</p>
+  ${topic ? `<p style="font-family:${FONT};font-size:14px;line-height:20px;color:${SOFT};margin:14px 0 0;">In this issue: ${topic}</p>` : ""}
 </td></tr>
 ${body}
 <tr><td style="padding:32px 40px 32px;">
@@ -640,3 +640,146 @@ function issue7(): ShowcaseIssue {
 }
 
 export const SHOWCASE_2027_ISSUES: ShowcaseIssue[] = [issue1(), issue2(), issue3(), issue4(), issue5(), issue6(), issue7()];
+
+// --- Seguimiento de la invitación (12 nov 2026) -----------------------------
+//
+// Se envía desde Mailmeteor sobre las pestañas de la hoja «DATABASE COMPLETA»,
+// así que las variables son las cabeceras de esas columnas: {{First name}},
+// {{School}} y {{Last showcase}}. No pasan por el seed: la plataforma usa
+// otras etiquetas ({{firstName}}).
+//
+// Las universidades que se nombran como confirmadas son sólo las que ya se
+// han anunciado en redes (2 nov). Las demás confirmadas no se citan hasta que
+// se anuncien.
+
+export type ShowcaseFollowUp = {
+  key: string;
+  /** Pestaña de «DATABASE COMPLETA» a la que va. */
+  list: string;
+  subject: string;
+  altSubject: string;
+  previewText: string;
+  html: string;
+};
+
+const FOLLOWUP_DATE = "2026-11-12";
+const ANNOUNCED = "Northwestern, UCF, Sacred Heart, Bryant, Evansville and New Hampshire";
+
+function followUpReturning(): ShowcaseFollowUp {
+  const tag = "fu1-returning";
+  const previewText = "You know the week already. Here is only what is new for 2027, and who has confirmed so far.";
+  return {
+    key: "han-venido",
+    list: "Lista - Han venido",
+    subject: "Back in Valencia this February, {{First name}}?",
+    altSubject: "What's new at the Eture Showcase since {{Last showcase}}",
+    previewText,
+    html: shell({
+      issue: tag,
+      sendDate: FOLLOWUP_DATE,
+      preheader: previewText,
+      topic: "",
+      body: [
+        section(
+          [
+            h2("We would love to see {{School}} back in the stands."),
+            p("Hi {{First name}},"),
+            p(
+              "A few weeks ago we sent you the invitation to the <strong>Eture Showcase 2027</strong>, 8–11 February in Valencia. You were with us in {{Last showcase}}, so you already know how the week works. Here is only what is new.",
+            ),
+          ].join(""),
+        ),
+        section(
+          box(
+            [
+              kicker("New for 2027"),
+              check("<strong>A deeper player pool.</strong> Around 150 selected players on the field, from the same agency behind 141 Division I placements this fall."),
+              check("<strong>The European Recruiting Soccer Tour.</strong> Iceland, Spain, Sweden and Denmark, 5–15 February. Add any other stop and your Valencia package drops to €500 single or €300 per coach sharing."),
+              check("<strong>The format you know.</strong> Two days of games, Eture FC under the lights, and one-to-one meetings with players on Thursday."),
+            ].join(""),
+          ),
+        ),
+        section(
+          [
+            kicker("Already confirmed"),
+            p(`${ANNOUNCED} are among the programs already registered for 2027.`),
+            button("Confirm your attendance", link(REGISTER, tag, "cta1")),
+            small("Hotel, meals, transport and airport pick-up included, from €300 per coach. Our team confirms your room once you register."),
+          ].join(""),
+          "32px 40px 32px",
+        ),
+        closing(tag, "See you back in Valencia.", "Register your staff and we take care of the rest."),
+      ].join("\n"),
+    }),
+  };
+}
+
+function followUpNew(): ShowcaseFollowUp {
+  const tag = "fu1-new";
+  const previewText = "Four days, around 150 players and every detail handled for you. In case our invitation got buried mid-season.";
+  return {
+    key: "nunca-han-venido",
+    list: "Lista - Nunca han venido",
+    subject: "Following up on Valencia, {{First name}}",
+    altSubject: "{{First name}}, 150 players in one place this February",
+    previewText,
+    html: shell({
+      issue: tag,
+      sendDate: FOLLOWUP_DATE,
+      preheader: previewText,
+      topic: "",
+      body: [
+        section(
+          [
+            h2("One trip. Around 150 players. All in one place."),
+            p("Hi {{First name}},"),
+            p(
+              "We wanted to follow up on our invitation to the <strong>Eture Showcase 2027</strong>, 8–11 February in Valencia, Spain, in case it got buried during the season.",
+            ),
+            p(
+              "The short version: four days watching around <strong>150 selected players</strong> from Spain, the U.S. and abroad, with hotel, meals and transport handled by us. You only book the flight.",
+            ),
+          ].join(""),
+        ),
+        stats(
+          [
+            ["68", "college programs in the stands in 2026"],
+            ["150", "selected players on the field"],
+            ["€350", "per coach sharing, all-inclusive"],
+          ],
+          "The Eture Showcase",
+        ),
+        section(
+          [
+            kicker("Who comes"),
+            h2("Every level. Every player with a real destination."),
+            p(
+              "Last February, UCLA, North Carolina, Wake Forest, Penn State and Indiana were in the stands alongside programs like Franklin Pierce, Rogers State and Iowa Western. That mix means the players on the field fit programs at every level, including {{School}}.",
+            ),
+            p(`For 2027, ${ANNOUNCED} are among the programs already registered.`),
+          ].join(""),
+        ),
+        section(
+          [
+            box(
+              [
+                kicker("What's included"),
+                check("Three nights at the AdHoc Hotel, breakfast included"),
+                check("Meals, the welcome cocktail and a Spanish barbecue at the stadium"),
+                check("Airport pick-up and daily transport to the fields"),
+                check("Two days of games, Eture FC under the lights, one-to-one meetings with players"),
+                small("€550 single or €350 per coach sharing. €500 / €300 if you also attend another stop of the European Recruiting Soccer Tour."),
+              ].join(""),
+            ),
+            button("Register your staff", link(REGISTER, tag, "cta1")),
+            small(`<a href="${link(SCHEDULE, tag, "schedule")}" style="color:${RED};text-decoration:none;">See the full programme →</a>`),
+          ].join(""),
+          "32px 40px 32px",
+        ),
+        closing(tag, "Is {{School}} joining us?", "Register your staff, choose your rooms and we take care of the rest."),
+      ].join("\n"),
+    }),
+  };
+}
+
+export const SHOWCASE_2027_FOLLOWUP: ShowcaseFollowUp[] = [followUpReturning(), followUpNew()];
