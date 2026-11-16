@@ -793,7 +793,7 @@ export const SHOWCASE_2027_FOLLOWUP: ShowcaseFollowUp[] = [followUpReturning(), 
 // formulario. Firma Eture Sports. No hay fecha límite de inscripción, así que
 // no se inventa urgencia.
 //
-// Cifras: ~150 jugadores (invitación, pendiente de confirmar para 2027), 40 %
+// Cifras: más de 150 jugadores (confirmado por Eture, 16 nov 2026), 40 %
 // de los españoles en Division I (dato interno de Eture), 328 en plantillas de
 // EE. UU., 780+ colocaciones desde 2015 y 68 programas en 2026 (base de
 // operaciones, 16 nov 2026).
@@ -803,7 +803,7 @@ export type ShowcaseMailmeteor = ShowcaseFollowUp & { sendDate: string };
 function playersEmail(variant: "returning" | "new"): ShowcaseMailmeteor {
   const sendDate = "2026-11-24";
   const tag = `players-${variant}`;
-  const previewText = "Approximately 150 Spanish, American and international players. 8–11 February 2027, Valencia.";
+  const previewText = "More than 150 Spanish, American and international players. 8–11 February 2027, Valencia.";
   const context =
     variant === "returning"
       ? "Thank you again for joining us in {{Last showcase}}. As in previous editions, every player on the field comes through our recruiting agency or our residential development program in Spain, so our staff knows each player's game, character and goals."
@@ -826,7 +826,7 @@ function playersEmail(variant: "returning" | "new"): ShowcaseMailmeteor {
             h2("The players at the Eture Showcase 2027"),
             p("Coach {{Last name}},"),
             p(
-              "We are writing with an update on the players who will take part in the <strong>Eture Showcase 2027</strong>, to be held in Valencia, Spain, from <strong>8 to 11 February</strong>. Approximately <strong>150 players</strong> will compete over two days of games.",
+              "We are writing with an update on the players who will take part in the <strong>Eture Showcase 2027</strong>, to be held in Valencia, Spain, from <strong>8 to 11 February</strong>. More than <strong>150 players</strong> will compete over two days of games.",
             ),
             p(context),
             button("Confirm your attendance", link(REGISTER, tag, "cta1")),
@@ -889,7 +889,7 @@ ${para("Coach {{Last name}},")}
 ${para("We are following up on our recent email about the <strong>Eture Showcase 2027</strong>, which will take place in Valencia, Spain, from 8 to 11 February 2027.")}
 ${para(`If you and your staff are planning to attend, we would be grateful if you could confirm by completing the registration form: <a href="${link(REGISTER, tag, "form")}" style="color:${RED};font-weight:bold;">Eture Showcase 2027 registration</a>.`)}
 ${para("It takes only a few minutes. Once we receive it, our team will confirm your hotel room and airport pick-up, and in January we will send you the final schedule and the player book.")}
-${para("As a reminder, approximately 150 Spanish, American and international players will take part, all from our recruiting agency and our residential development program in Spain.")}
+${para("As a reminder, more than 150 Spanish, American and international players will take part, all from our recruiting agency and our residential development program in Spain.")}
 ${para("If you have any questions, simply reply to this email or write to <a href=\"mailto:showcase@eturesports.com\" style=\"color:#222222;\">showcase@eturesports.com</a>. If you have already registered, thank you, and please disregard this message.")}
 ${para("Kind regards,")}
 <p style="font-family:${FONT};font-size:15px;line-height:23px;color:#222222;margin:0;"><strong>Eture Sports</strong><br /><span style="color:${MUTED};">Eture Showcase 2027 · 8–11 February · Valencia, Spain</span><br /><a href="${link("https://www.eturesports.com/showcase", tag, "signature")}" style="color:${MUTED};">eturesports.com/showcase</a></p>
@@ -924,7 +924,7 @@ function pendingEmail(): ShowcaseMailmeteor {
     key: "sin-entrada-2027",
     list: "Lista - Sin entrada 2027",
     sendDate,
-    subject: "Coach {{Last name}}, your invitation: 150 players, 4 days in Valencia",
+    subject: "Coach {{Last name}}, your invitation: 150+ players, 4 days in Valencia",
     altSubject: "Coach {{Last name}}, Spanish and American talent in Valencia this February",
     previewText: "The key details in one place: dates, players, the European Recruiting Soccer Tour and how to confirm.",
     html: shell({
@@ -939,7 +939,7 @@ function pendingEmail(): ShowcaseMailmeteor {
             h2("Your invitation to the Eture Showcase 2027"),
             p("Coach {{Last name}},"),
             p(
-              "From <strong>8 to 11 February 2027</strong>, approximately <strong>150 Spanish, American and international players</strong> will compete in front of college coaching staffs at the <strong>Eture Showcase</strong> in Valencia, Spain. In 2026, 68 programs, from NCAA Division I to the NJCAA, made the trip. We would be delighted to welcome {{School name}} to Valencia this year, and below you will find everything you need to plan your visit.",
+              "From <strong>8 to 11 February 2027</strong>, more than <strong>150 Spanish, American and international players</strong> will compete in front of college coaching staffs at the <strong>Eture Showcase</strong> in Valencia, Spain. In 2026, 68 programs, from NCAA Division I to the NJCAA, made the trip. We would be delighted to welcome {{School name}} to Valencia this year, and below you will find everything you need to plan your visit.",
             ),
             button("Complete the registration form", link(REGISTER, tag, "cta1")),
           ].join(""),
@@ -950,7 +950,7 @@ function pendingEmail(): ShowcaseMailmeteor {
             rows([
               ["<strong>Dates</strong>", "Monday 8 – Thursday 11 February 2027"],
               ["<strong>Venue</strong>", "Eture campus, Valencia, Spain"],
-              ["<strong>Players</strong>", "Approximately 150"],
+              ["<strong>Players</strong>", "More than 150"],
               ["<strong>Format</strong>", "Two days of games, an Eture FC match and one-to-one meetings with players"],
               ["<strong>Coach package</strong>", "From €300 per coach: hotel, meals and transport"],
               ["<strong>Arrival</strong>", "Pick-up at Valencia airport or train station"],

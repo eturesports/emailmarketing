@@ -65,13 +65,13 @@ operaciones (`claims`). Comprobación hecha el 16 nov 2026:
 
 | Cifra | Fuente | Estado |
 |---|---|---|
-| ~150 jugadores en el Showcase | Invitación de octubre | **Confirmar la cifra de 2027** |
+| Más de 150 jugadores en el Showcase 2027 | Eture (16 nov 2026) | Confirmada |
 | 68 programas en el Showcase 2026 | Base de operaciones | Verificada |
 | «Over 140» programas en todas las ediciones | Invitación | **Incorrecta: son 138.** Usar «more than 130» |
 | 780+ colocaciones desde 2015 | Base: 788 operaciones (729 personas) | Verificada (incluye traslados) |
 | 310 jugadores en plantillas de EE. UU. | Invitación | **Desactualizada: hoy son 328** |
 | 141 colocaciones en Division I (otoño 2026) | Invitación | **Sin verificar**: la base aún no tiene la temporada 26/27 |
-| 40 % de los españoles en Division I | Invitación | **Sin verificar**: falta la fuente |
+| 40 % de los españoles en Division I | Eture (dato interno) | Confirmada por Eture |
 
 ## Públicos
 
