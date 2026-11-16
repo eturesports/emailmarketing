@@ -935,7 +935,7 @@ function pendingEmail(): ShowcaseMailmeteor {
             h2("Your invitation to the Eture Showcase 2027"),
             p("Coach {{Last name}},"),
             p(
-              "We would like to remind you of our invitation to the <strong>Eture Showcase 2027</strong>, which will take place in Valencia, Spain, from <strong>8 to 11 February 2027</strong>. We have not yet received your registration, so we have put the key details in one place.",
+              "From <strong>8 to 11 February 2027</strong>, approximately <strong>150 Spanish, American and international players</strong> will compete in front of college coaching staffs at the <strong>Eture Showcase</strong> in Valencia, Spain. In 2026, 68 programs, from NCAA Division I to the NJCAA, made the trip. We would be delighted to welcome your staff this year, and below you will find everything you need to plan your visit.",
             ),
             button("Complete the registration form", link(REGISTER, tag, "cta1")),
           ].join(""),
