@@ -844,7 +844,7 @@ function playersEmail(variant: "returning" | "new"): ShowcaseMailmeteor {
               "Players from our gap-year residential program, who spend a full season in Spain training daily and competing in senior football before returning to the NCAA. Recent examples include Aidan Ahmad (Cal), Isaac Rosenthal (Northwestern), Nicholas Brown (Dartmouth) and Zolly Corrigan (Louisville).",
             ),
             kicker("International talent"),
-            p("Players from other countries who train under the same Eture methodology in Spain.", "margin:0;"),
+            p("Players who train under the Eture methodology in Spain or have been scouted by our international scouts.", "margin:0;"),
           ].join(""),
         ),
         stats(
@@ -968,7 +968,7 @@ function pendingEmail(): ShowcaseMailmeteor {
             ),
             check("<strong>Spanish players</strong> scouted by Eture in Spain's senior and youth leagues. Our scouting team travels across the country to identify the best profiles ready for the college pathway. Today, 40% of the Spanish players in NCAA Division I came through Eture."),
             check("<strong>American players</strong> from our gap-year residential program, who return to the NCAA after a full season of senior football in Spain. Recent examples include Aidan Ahmad (Cal), Isaac Rosenthal (Northwestern), Nicholas Brown (Dartmouth) and Zolly Corrigan (Louisville)."),
-            check("<strong>International players</strong> who train under the same Eture methodology in Spain."),
+            check("<strong>International players</strong> who train under the Eture methodology in Spain or have been scouted by our international scouts."),
           ].join(""),
         ),
         section(
