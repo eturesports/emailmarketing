@@ -10,7 +10,7 @@
 
 import { mkdirSync, writeFileSync } from "node:fs";
 import { join } from "node:path";
-import { SHOWCASE_2027_FOLLOWUP, SHOWCASE_2027_ISSUES } from "../prisma/campaigns/showcase-2027";
+import { SHOWCASE_2027_ISSUES, SHOWCASE_2027_MAILMETEOR } from "../prisma/campaigns/showcase-2027";
 
 const outDir = join(process.cwd(), "campaigns", "showcase-2027");
 mkdirSync(outDir, { recursive: true });
@@ -26,15 +26,15 @@ for (const issue of SHOWCASE_2027_ISSUES) {
   console.log(`✔ ${file}  ·  ${issue.subject}`);
 }
 
-for (const followUp of SHOWCASE_2027_FOLLOWUP) {
-  const file = `seguimiento-${followUp.key}.html`;
+// Correos que salen por Mailmeteor: página de revisión y cuerpo suelto para
+// pegar en su editor HTML.
+for (const email of SHOWCASE_2027_MAILMETEOR) {
   const page = `<!doctype html>
 <html lang="en"><head><meta charset="utf-8" /><meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>${followUp.subject}</title></head>
-<body style="margin:0;">${followUp.html}</body></html>
+<title>${email.subject}</title></head>
+<body style="margin:0;">${email.html}</body></html>
 `;
-  writeFileSync(join(outDir, file), page);
-  // El cuerpo suelto, listo para pegar en el editor HTML de Mailmeteor.
-  writeFileSync(join(outDir, `seguimiento-${followUp.key}.mailmeteor.html`), followUp.html);
-  console.log(`✔ ${file}  ·  ${followUp.subject}  →  ${followUp.list}`);
+  writeFileSync(join(outDir, `${email.key}.html`), page);
+  writeFileSync(join(outDir, `${email.key}.mailmeteor.html`), email.html);
+  console.log(`✔ ${email.key}.html  ·  ${email.sendDate}  ·  ${email.subject}  →  ${email.list}`);
 }

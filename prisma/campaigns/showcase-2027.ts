@@ -783,3 +783,96 @@ function followUpNew(): ShowcaseFollowUp {
 }
 
 export const SHOWCASE_2027_FOLLOWUP: ShowcaseFollowUp[] = [followUpReturning(), followUpNew()];
+
+// --- 24 nov 2026 · Los jugadores --------------------------------------------
+//
+// Primer correo con el tono acordado para entrenadores: trato formal
+// («Coach {{Last name}}»), cifras verificadas y una sola petición, completar el
+// formulario. Firma Eture Sports. No hay fecha límite de inscripción, así que
+// no se inventa urgencia.
+//
+// Cifras: ~150 jugadores (invitación, pendiente de confirmar para 2027), 40 %
+// de los españoles en Division I (dato interno de Eture), 328 en plantillas de
+// EE. UU., 780+ colocaciones desde 2015 y 68 programas en 2026 (base de
+// operaciones, 16 nov 2026).
+
+export type ShowcaseMailmeteor = ShowcaseFollowUp & { sendDate: string };
+
+function playersEmail(variant: "returning" | "new"): ShowcaseMailmeteor {
+  const sendDate = "2026-11-24";
+  const tag = `players-${variant}`;
+  const previewText = "Approximately 150 Spanish, American and international players. 8–11 February 2027, Valencia.";
+  const context =
+    variant === "returning"
+      ? "Thank you again for joining us in {{Last showcase}}. As in previous editions, every player on the field comes through our recruiting agency or our residential development program in Spain, so our staff knows each player's game, character and goals."
+      : "Every player on the field comes through our recruiting agency or our residential development program in Spain, so our staff knows each player's game, character and goals. In 2026, 68 college programs attended, from NCAA Division I to the NJCAA.";
+  return {
+    key: `jugadores-${variant === "returning" ? "han-venido" : "nunca-han-venido"}`,
+    list: variant === "returning" ? "Lista - Han venido" : "Lista - Nunca han venido",
+    sendDate,
+    subject: "Eture Showcase 2027: the players you will evaluate in Valencia",
+    altSubject: "Coach {{Last name}}, a reminder to confirm your attendance",
+    previewText,
+    html: shell({
+      issue: tag,
+      sendDate,
+      preheader: previewText,
+      topic: "",
+      body: [
+        section(
+          [
+            h2("The players at the Eture Showcase 2027"),
+            p("Coach {{Last name}},"),
+            p(
+              "We are writing with an update on the players who will take part in the <strong>Eture Showcase 2027</strong>, to be held in Valencia, Spain, from <strong>8 to 11 February</strong>. Approximately <strong>150 players</strong> will compete over two days of games.",
+            ),
+            p(context),
+            button("Confirm your attendance", link(REGISTER, tag, "cta1")),
+          ].join(""),
+        ),
+        section(
+          [
+            kicker("Spanish talent"),
+            p(
+              "Players developed in Spanish academy football and in senior competition with Eture FC, with daily training at our Valencia and Vinaròs campuses. Today, <strong>40% of the Spanish players in NCAA Division I</strong> came through Eture.",
+            ),
+            kicker("American talent"),
+            p(
+              "Players from our gap-year residential program, who spend a full season in Spain training daily and competing in senior football before returning to the NCAA. Recent examples include Aidan Ahmad (Cal), Isaac Rosenthal (Northwestern), Nicholas Brown (Dartmouth) and Zolly Corrigan (Louisville).",
+            ),
+            kicker("International talent"),
+            p("Players from other countries who complete the same program in Spain, with the academic preparation to arrive eligible.", "margin:0;"),
+          ].join(""),
+        ),
+        stats(
+          [
+            ["328", "Eture players on U.S. college rosters today"],
+            ["780+", "college placements since 2015"],
+            ["68", "programs at the 2026 Showcase"],
+          ],
+          "Eture in numbers",
+        ),
+        section(
+          [
+            kicker("How to confirm"),
+            p(
+              "If you plan to attend, please complete the registration form. It takes a few minutes: your staff, your room preference and any other European Recruiting Soccer Tour stops you can make.",
+            ),
+            p(
+              "Once we receive it, our team will confirm your hotel room and airport pick-up. Registered coaches receive the final schedule and the player book in January.",
+            ),
+            button("Complete the registration form", link(REGISTER, tag, "cta2")),
+            small("If you have already registered, thank you, and please disregard this reminder."),
+          ].join(""),
+          "32px 40px 36px",
+        ),
+      ].join("\n"),
+    }),
+  };
+}
+
+export const SHOWCASE_2027_MAILMETEOR: ShowcaseMailmeteor[] = [
+  ...SHOWCASE_2027_FOLLOWUP.map((f) => ({ ...f, key: `seguimiento-${f.key}`, sendDate: FOLLOWUP_DATE })),
+  playersEmail("returning"),
+  playersEmail("new"),
+];
