@@ -922,12 +922,12 @@ function pendingEmail(): ShowcaseMailmeteor {
     sendDate,
     subject: "Eture Showcase 2027 · 8–11 February, Valencia: registration is open",
     altSubject: "Coach {{Last name}}, will your staff join us in Valencia?",
-    previewText: "The key details in one place: dates, players, what is included and how to confirm.",
+    previewText: "The key details in one place: dates, players, the European Recruiting Soccer Tour and how to confirm.",
     html: shell({
       issue: tag,
       sendDate,
       countdown: false,
-      preheader: "The key details in one place: dates, players, what is included and how to confirm.",
+      preheader: "The key details in one place: dates, players, the European Recruiting Soccer Tour and how to confirm.",
       topic: "",
       body: [
         section(
@@ -962,6 +962,33 @@ function pendingEmail(): ShowcaseMailmeteor {
             check("<strong>Spanish players</strong> developed in academy football and in senior competition with Eture FC. Today, 40% of the Spanish players in NCAA Division I came through Eture."),
             check("<strong>American players</strong> from our gap-year residential program, who return to the NCAA after a full season of senior football in Spain. Recent examples include Aidan Ahmad (Cal), Isaac Rosenthal (Northwestern), Nicholas Brown (Dartmouth) and Zolly Corrigan (Louisville)."),
             check("<strong>International players</strong> who complete the same program in Spain."),
+          ].join(""),
+        ),
+        section(
+          [
+            kicker("European Recruiting Soccer Tour"),
+            p(
+              "This February we are also co-organising the <strong>European Recruiting Soccer Tour</strong>, a private showcase circuit for U.S. college programs in four countries, from 5 to 15 February 2027. Each stop is hosted by the agency that places that country's players in the NCAA, NAIA and NJCAA.",
+            ),
+            rows([
+              ["<strong>Iceland</strong> · Garðabær<br /><span style=\"color:#6e6e73;font-size:13px;\">Soccer &amp; Education USA</span>", "5–6 February"],
+              [`<strong style="color:${RED};">Spain</strong> · Valencia<br /><span style="color:#6e6e73;font-size:13px;">Eture Sports</span>`, `<strong style="color:${RED};">8–11 February</strong>`],
+              ["<strong>Sweden</strong> · Gothenburg<br /><span style=\"color:#6e6e73;font-size:13px;\">Kumlin Recruiting</span>", "12–13 February"],
+              ["<strong>Denmark</strong> · Copenhagen<br /><span style=\"color:#6e6e73;font-size:13px;\">NSSA</span>", "14–15 February"],
+            ]),
+            box(
+              [
+                kicker("Coach package in Valencia"),
+                rows([
+                  ["Valencia only · single room", `<strong style="color:${RED};">€550</strong>`],
+                  ["Valencia only · shared room, per coach", `<strong style="color:${RED};">€350</strong>`],
+                  ["With another Tour stop · single room", `<strong style="color:${RED};">€500</strong>`],
+                  ["With another Tour stop · shared room, per coach", `<strong style="color:${RED};">€300</strong>`],
+                ]),
+                small("Hotel, meals and transport in Valencia included. Airfare not included. Please indicate every stop you plan to attend on the registration form."),
+              ].join(""),
+            ),
+            small(`Full circuit and venues: <a href="${link(TOUR, tag, "tour")}" style="color:${RED};text-decoration:none;">europeanrecruiting.com</a>`),
           ].join(""),
         ),
         section(
