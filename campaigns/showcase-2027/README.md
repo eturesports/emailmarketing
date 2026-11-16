@@ -1,83 +1,95 @@
 # Eture Showcase 2027 · Correos a entrenadores
 
-Newsletter quincenal para entrenadores universitarios hasta el Showcase
-(**8–11 de febrero de 2027, Valencia**). Un único objetivo: que el entrenador
-rellene el registro en `eturesports.com/showcase#register`.
+Campaña a entrenadores universitarios de EE. UU. hasta el Showcase
+(**8–11 de febrero de 2027, Valencia**). Un único objetivo: que **rellenen el
+formulario de registro** (`eturesports.com/showcase#register`) para confirmar
+su asistencia.
 
-- **Contenido:** `prisma/campaigns/showcase-2027.ts` (fuente única).
-- **Plantillas en la plataforma:** `npm run db:seed` → categoría «Showcase 2027».
-- **Vista previa en HTML:** `npx tsx scripts/export-showcase-2027.ts` → esta carpeta.
+Es nuestro público más profesional, así que cada correo se rige por tres
+reglas: hablar del evento, dar cifras exactas y pedir una sola cosa.
 
-## Por qué así
+## Tono y estilo
 
-- **En inglés**, como la invitación de octubre: el destinatario es staff de
-  NCAA, NAIA y NJCAA.
-- **Un tema por número**, en el orden en que un entrenador decide si viaja:
-  ¿merece la pena? → ¿qué jugadores hay? → ¿qué incluye y cuánto cuesta? →
-  ¿cómo encaja en mi viaje? → ¿cómo preparo la visita? → últimos detalles.
-- **Martes a las 15:30 (Madrid)** = 9:30 ET / 6:30 PT: el entrenador lo ve al
-  empezar la jornada, no enterrado bajo el correo de la noche.
-- **Cifras sólo de fuentes verificables**: la invitación de octubre y la base de
-  operaciones de Eture (consultada el 5 de noviembre de 2026).
-- **Cada enlace lleva UTM** (`utm_campaign=showcase-2027-coaches`,
-  `utm_content=noN-…`) para saber qué número genera cada registro.
+- **Trato formal**: «Coach {{Last name}},» y no el nombre de pila. Es la
+  fórmula habitual en el fútbol universitario estadounidense.
+- **Sin superlativos que no podamos demostrar**: nada de «the largest
+  showcase in Europe», «no filler» ni frases publicitarias. Hechos, fechas y
+  cifras.
+- **Cada cifra con su fuente** (tabla de abajo). Si una cifra no está
+  verificada, no sale.
+- **Una sola petición por correo**: completar el formulario. Siempre se
+  explica qué pasa después (nuestro equipo confirma habitación y recogida).
+- **Firma de una persona** con nombre y cargo, no de «the team».
+- **Correos breves**: un tema por envío y el botón arriba, no al final.
+
+## Contenido de la serie
+
+Todos los correos hablan de tres cosas: el evento, los jugadores y el
+formulario.
+
+- **El evento**: fechas, programa, lo que incluye el paquete y cómo se llega.
+- **Los jugadores**: número aproximado de participantes y el perfil del talento.
+  - *Español*: formado en canteras y en fútbol sénior con Eture FC.
+  - *Estadounidense*: jugadores del programa residencial (gap year) que vuelven
+    a la NCAA con una temporada de fútbol sénior en Europa.
+- **El recordatorio**: confirmar la asistencia en el formulario.
 
 ## Calendario
 
-| Nº | Envío | Asunto | Tema | Días al Showcase |
-|---|---|---|---|---|
-| 1 | mar 10 nov 2026 | 90 days to Valencia: Eture Showcase 2027 | Resumen 2026 (68 programas), novedades 2027 | 90 |
-| 2 | mar 24 nov 2026 | Who you'll see on the field in Valencia | Perfiles de jugador, fichajes del curso pasado, cifras del otoño 2026 | 76 |
-| 3 | mar 8 dic 2026 | Four days in Valencia, planned to the minute | Programa día a día, paquete y precios, preguntas frecuentes de viaje | 62 |
-| 4 | mar 22 dic 2026 | Our 2026 in numbers (and one thing before the break) | Edición corta de vacaciones; el player book sale en enero | 48 |
-| 5 | mar 5 ene 2027 | Four countries, one trip: the European Recruiting Soccer Tour | Gira europea, descuento combinado, tres itinerarios | 34 |
-| 6 | mar 19 ene 2027 | The Showcase player book is going out | Player book, cómo funcionan las reuniones del jueves, quién viene ya | 20 |
-| 7 | mar 2 feb 2027 | Final call: 6 days to the Eture Showcase | Todo en una página: fechas, hotel, precio, programa | 6 |
+| Fecha | Correo | Contenido | Petición |
+|---|---|---|---|
+| 13–26 oct | Invitación | Evento completo | Confirmar asistencia |
+| 12–13 nov | Seguimiento | Recordatorio, en dos versiones (han venido / nunca) | Completar el formulario |
+| 24 nov | Los jugadores | Número aproximado, talento español y estadounidense, posiciones | Completar el formulario |
+| 8 dic | El evento | Programa día a día, paquete, cómo llegar, qué pasa tras registrarse | Completar el formulario |
+| 22 dic | Recordatorio breve | Antes del parón de vacaciones | Completar el formulario |
+| 5 ene | Viaje y gira europea | Combinar Valencia con otra parada y descuento | Completar el formulario |
+| 19 ene | Player book | Sólo lo reciben los registrados | Completar el formulario |
+| 2 feb | Último aviso | Datos prácticos en una página | Completar el formulario |
 
-Cada número tiene un **asunto alternativo** (`altSubject` en el código) para
-reenviarlo a los 3 días a quien no lo abrió, o para un test A/B.
+**Recordatorio intermedio.** Una semana después de cada correo principal sale un
+recordatorio breve, en texto plano y firmado por una persona, sólo a quien no
+hizo clic en el formulario. Si las bajas pasan del 0,5 % en un envío, se
+suprime.
 
-## Audiencia
+Envío: martes a las 15:30 (Madrid) = 9:30 ET, desde Mailmeteor y
+`contact@eturesports.com`. Con el límite de ~2.000 correos diarios cada envío
+se reparte en dos días (día 1: «Han venido» + D1, DII y NAIA de «Nunca han
+venido»; día 2: DIII, JuCo y NCCAA).
 
-1. **Lista «Showcase 2027 · Entrenadores»**: los mismos contactos que recibieron
-   la invitación por Mailmeteor (D1, D2, D3, NAIA y JUCO). Importarlos con la
-   columna `company` = universidad, para que funcione `{{company | your program}}`.
-2. **Lista «Showcase 2027 · Registrados»**: quien ya se ha registrado.
-   **Antes de cada envío** hay que quitar estos contactos de la lista de
-   entrenadores. La plataforma no excluye una lista de otra automáticamente,
-   así que es un paso manual en *Listas*.
-3. Ejecutar «Comprobar direcciones» sobre la lista antes del primer envío.
+## Cifras: qué podemos decir
 
-## Checklist de cada envío
+Ninguna cifra está todavía en el registro de cifras aprobadas de la base de
+operaciones (`claims`). Comprobación hecha el 16 nov 2026:
 
-- [ ] Volcar los nuevos registrados en «Registrados» y retirarlos de «Entrenadores».
-- [ ] Crear la campaña desde la plantilla del número, remitente
-      `contact@eturesports.com`, responder a `showcase@eturesports.com`.
-- [ ] Envío de prueba a `marketing@` y revisar en Gmail móvil.
-- [ ] Programar para el martes a las 15:30 (Madrid).
-- [ ] 3 días después: reenviar con el asunto alternativo a quien no abrió
-      (pestaña *Secuencia* → «A quien no lo abrió», espera de 3 días).
+| Cifra | Fuente | Estado |
+|---|---|---|
+| ~150 jugadores en el Showcase | Invitación de octubre | **Confirmar la cifra de 2027** |
+| 68 programas en el Showcase 2026 | Base de operaciones | Verificada |
+| «Over 140» programas en todas las ediciones | Invitación | **Incorrecta: son 138.** Usar «more than 130» |
+| 780+ colocaciones desde 2015 | Base: 788 operaciones (729 personas) | Verificada (incluye traslados) |
+| 310 jugadores en plantillas de EE. UU. | Invitación | **Desactualizada: hoy son 328** |
+| 141 colocaciones en Division I (otoño 2026) | Invitación | **Sin verificar**: la base aún no tiene la temporada 26/27 |
+| 40 % de los españoles en Division I | Invitación | **Sin verificar**: falta la fuente |
 
-### Pendiente antes de enviar
+## Públicos
 
-- **Nº 2 y Nº 4:** las cifras de temporada (234 jugadores, 1.390 titularidades,
-  121.000 minutos, 328 en plantillas) son de primeros de noviembre. Refrescarlas
-  con la base de operaciones la víspera del envío.
-- **Nº 6:** sustituir el bloque `[PENDIENTE]` por la lista de programas ya
-  registrados. Es la prueba social más fuerte de la serie.
-- **Nº 7:** confirmar que el registro sigue abierto el 2 de febrero y que
-  quedan habitaciones. Si no, cambiar el mensaje a lista de espera.
-- **Pie de baja:** la plataforma añade su pie en español («Darse de baja»).
-  Para esta serie debería ir en inglés.
+En la hoja «DATABASE COMPLETA», pestañas que se actualizan solas:
+
+| Lista | Entrenadores |
+|---|---|
+| Han venido (2021–2026) | 405 |
+| Nunca han venido | 2.904 |
+| Confirmadas 2027 (fuera de la campaña) | 66 · 21 universidades |
+
+Antes de cada envío: actualizar las confirmadas, congelar la pestaña (pegar
+como valores), mandar una prueba y activar el enlace de baja de Mailmeteor.
 
 ## KPI
 
-| Métrica | Objetivo orientativo |
+| Métrica | Objetivo |
 |---|---|
-| Tasa de apertura | ≥ 35 % (audiencia que ya nos conoce) |
-| Clics al registro / entregados | ≥ 4 % |
-| Registros atribuidos (UTM) | Seguimiento por número en la analítica web |
-| Bajas por envío | ≤ 0,5 %; si se supera, espaciar a mensual |
-
-La mejor métrica es el número de programas registrados el 8 de febrero frente a
-los 68 de 2026.
+| Apertura | ≥ 35 % |
+| Clics al formulario / entregados | ≥ 4 % |
+| Bajas por envío | ≤ 0,5 % |
+| Programas registrados el 8 feb | Superar los 68 de 2026 |
