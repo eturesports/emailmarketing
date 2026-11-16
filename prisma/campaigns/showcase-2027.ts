@@ -924,8 +924,8 @@ function pendingEmail(): ShowcaseMailmeteor {
     key: "sin-entrada-2027",
     list: "Lista - Sin entrada 2027",
     sendDate,
-    subject: "Coach {{Last name}}, your invitation to the Eture Showcase 2027",
-    altSubject: "Coach {{Last name}}, 150 players in Valencia this February",
+    subject: "Coach {{Last name}}, your invitation: 150 players, 4 days in Valencia",
+    altSubject: "Coach {{Last name}}, Spanish and American talent in Valencia this February",
     previewText: "The key details in one place: dates, players, the European Recruiting Soccer Tour and how to confirm.",
     html: shell({
       issue: tag,
