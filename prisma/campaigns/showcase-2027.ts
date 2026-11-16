@@ -146,9 +146,11 @@ type ShellOptions = {
   preheader: string;
   topic: string;
   body: string;
+  /** Cuenta atrás en la cabecera. Sólo si la fecha de envío es segura. */
+  countdown?: boolean;
 };
 
-function shell({ issue, sendDate, preheader, topic, body }: ShellOptions): string {
+function shell({ sendDate, preheader, topic, body, countdown = true }: ShellOptions): string {
   const left = daysToGo(sendDate);
   return `<div style="background:${BG};margin:0;padding:0;">
 <div style="display:none;max-height:0;overflow:hidden;opacity:0;color:${BG};font-size:1px;line-height:1px;">${preheader}&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;</div>
@@ -156,7 +158,7 @@ function shell({ issue, sendDate, preheader, topic, body }: ShellOptions): strin
 <table role="presentation" align="center" width="100%" border="0" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border:1px solid ${LINE};border-radius:20px;overflow:hidden;">
 <tr><td style="padding:28px 24px 26px;text-align:center;">
   <h1 style="font-family:${FONT};font-size:38px;line-height:42px;font-weight:800;letter-spacing:-1px;text-transform:uppercase;color:${INK};margin:0 0 10px;">Eture Showcase 2027</h1>
-  <p style="font-family:${FONT};font-size:12px;line-height:18px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:${MUTED};margin:0;">8–11 February&nbsp;&nbsp;·&nbsp;&nbsp;Valencia, Spain&nbsp;&nbsp;·&nbsp;&nbsp;<span style="color:${RED};">${left} days to go</span></p>
+  <p style="font-family:${FONT};font-size:12px;line-height:18px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:${MUTED};margin:0;">8–11 February&nbsp;&nbsp;·&nbsp;&nbsp;Valencia, Spain${countdown ? `&nbsp;&nbsp;·&nbsp;&nbsp;<span style="color:${RED};">${left} days to go</span>` : ""}</p>
   ${topic ? `<p style="font-family:${FONT};font-size:14px;line-height:20px;color:${SOFT};margin:14px 0 0;">In this issue: ${topic}</p>` : ""}
 </td></tr>
 ${body}
@@ -903,9 +905,93 @@ ${para("Kind regards,")}
   };
 }
 
+// --- Universidades sin entrada en 2027 (nov 2026) ----------------------------
+//
+// Para «Lista - Sin entrada 2027»: programas que aún no tienen ficha en la
+// lista de asistentes de Operations. No nos han respondido, así que el correo
+// reúne lo esencial del evento y pide completar el formulario. Una sola versión:
+// la lista mezcla programas que ya vinieron y programas nuevos. Sin cuenta
+// atrás, porque la fecha exacta de envío no está fijada.
+
+function pendingEmail(): ShowcaseMailmeteor {
+  const sendDate = "2026-11-17";
+  const tag = "pending2027";
+  return {
+    key: "sin-entrada-2027",
+    list: "Lista - Sin entrada 2027",
+    sendDate,
+    subject: "Eture Showcase 2027 · 8–11 February, Valencia: registration is open",
+    altSubject: "Coach {{Last name}}, will your staff join us in Valencia?",
+    previewText: "The key details in one place: dates, players, what is included and how to confirm.",
+    html: shell({
+      issue: tag,
+      sendDate,
+      countdown: false,
+      preheader: "The key details in one place: dates, players, what is included and how to confirm.",
+      topic: "",
+      body: [
+        section(
+          [
+            h2("Your invitation to the Eture Showcase 2027"),
+            p("Coach {{Last name}},"),
+            p(
+              "We would like to remind you of our invitation to the <strong>Eture Showcase 2027</strong>, which will take place in Valencia, Spain, from <strong>8 to 11 February 2027</strong>. We have not yet received your registration, so we have put the key details in one place.",
+            ),
+            button("Complete the registration form", link(REGISTER, tag, "cta1")),
+          ].join(""),
+        ),
+        section(
+          [
+            kicker("The event at a glance"),
+            rows([
+              ["<strong>Dates</strong>", "Monday 8 – Thursday 11 February 2027"],
+              ["<strong>Venue</strong>", "Eture campus, Valencia, Spain"],
+              ["<strong>Players</strong>", "Approximately 150"],
+              ["<strong>Format</strong>", "Two days of games, an Eture FC match and one-to-one meetings with players"],
+              ["<strong>Coach package</strong>", "From €300 per coach: hotel, meals and transport"],
+              ["<strong>Arrival</strong>", "Pick-up at Valencia airport or train station"],
+            ]),
+          ].join(""),
+        ),
+        section(
+          [
+            kicker("The players"),
+            p(
+              "Every player on the field comes through our recruiting agency or our residential development program in Spain, so our staff knows each player's game, character and goals.",
+            ),
+            check("<strong>Spanish players</strong> developed in academy football and in senior competition with Eture FC. Today, 40% of the Spanish players in NCAA Division I came through Eture."),
+            check("<strong>American players</strong> from our gap-year residential program, who return to the NCAA after a full season of senior football in Spain. Recent examples include Aidan Ahmad (Cal), Isaac Rosenthal (Northwestern), Nicholas Brown (Dartmouth) and Zolly Corrigan (Louisville)."),
+            check("<strong>International players</strong> who complete the same program in Spain."),
+          ].join(""),
+        ),
+        section(
+          [
+            kicker("Who attends"),
+            p(
+              `In 2026, 68 college programs attended, from NCAA Division I to the NJCAA. For 2027, ${ANNOUNCED} are among the programs already registered.`,
+            ),
+          ].join(""),
+        ),
+        section(
+          [
+            kicker("How to confirm"),
+            p(
+              "Please complete the registration form with your staff, your room preference and any other European Recruiting Soccer Tour stops you plan to attend. Once we receive it, our team will confirm your hotel room and airport pick-up. Registered coaches receive the final schedule and the player book in January.",
+            ),
+            button("Complete the registration form", link(REGISTER, tag, "cta2")),
+            small(`Questions? Reply to this email or write to <a href="mailto:showcase@eturesports.com" style="color:${RED};text-decoration:none;">showcase@eturesports.com</a>. If you have registered in the last few days, thank you, and please disregard this message.`),
+          ].join(""),
+          "32px 40px 36px",
+        ),
+      ].join("\n"),
+    }),
+  };
+}
+
 export const SHOWCASE_2027_MAILMETEOR: ShowcaseMailmeteor[] = [
   ...SHOWCASE_2027_FOLLOWUP.map((f) => ({ ...f, key: `seguimiento-${f.key}`, sendDate: FOLLOWUP_DATE })),
   playersEmail("returning"),
   playersEmail("new"),
   plainReminder(),
+  pendingEmail(),
 ];
