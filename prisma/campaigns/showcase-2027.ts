@@ -52,6 +52,7 @@ const REGISTER = "https://www.eturesports.com/showcase#register";
 const SCHEDULE = "https://www.eturesports.com/showcase#schedule";
 const OPERATIONS = "https://www.eturesports.com/college-operations";
 const TOUR = "https://www.europeanrecruiting.com";
+const APP = "https://eture.app";
 
 // --- Bloques ----------------------------------------------------------------
 
@@ -793,7 +794,7 @@ export const SHOWCASE_2027_FOLLOWUP: ShowcaseFollowUp[] = [followUpReturning(), 
 // formulario. Firma Eture Sports. No hay fecha límite de inscripción, así que
 // no se inventa urgencia.
 //
-// Cifras: más de 150 jugadores (confirmado por Eture, 16 nov 2026), 40 %
+// Cifras: más de 200 jugadores (confirmado por Eture, 16 nov 2026), 40 %
 // de los españoles en Division I (dato interno de Eture), 328 en plantillas de
 // EE. UU., 780+ colocaciones desde 2015 y 68 programas en 2026 (base de
 // operaciones, 16 nov 2026).
@@ -803,7 +804,7 @@ export type ShowcaseMailmeteor = ShowcaseFollowUp & { sendDate: string };
 function playersEmail(variant: "returning" | "new"): ShowcaseMailmeteor {
   const sendDate = "2026-11-24";
   const tag = `players-${variant}`;
-  const previewText = "More than 150 Spanish, American and international players. 8–11 February 2027, Valencia.";
+  const previewText = "More than 200 filtered profiles: Spanish, American and international players. 8–11 February 2027, Valencia.";
   const context =
     variant === "returning"
       ? "Thank you again for joining us in {{Last showcase}}. As in previous editions, it is a <strong>closed showcase, not an open one</strong>: every player on the field has been scouted and selected by our staff and trains under the Eture methodology in Spain."
@@ -826,7 +827,7 @@ function playersEmail(variant: "returning" | "new"): ShowcaseMailmeteor {
             h2("The players at the Eture Showcase 2027"),
             p("Coach {{Last name}},"),
             p(
-              "We are writing with an update on the players who will take part in the <strong>Eture Showcase 2027</strong>, to be held in Valencia, Spain, from <strong>8 to 11 February</strong>. More than <strong>150 players</strong> will compete over two days of games.",
+              "We are writing with an update on the players who will take part in the <strong>Eture Showcase 2027</strong>, to be held in Valencia, Spain, from <strong>8 to 11 February</strong>. More than <strong>200 filtered profiles</strong>, all scouted and selected by Eture, will compete over two days of games.",
             ),
             p(context),
             button("Confirm your attendance", link(REGISTER, tag, "cta1")),
@@ -861,7 +862,7 @@ function playersEmail(variant: "returning" | "new"): ShowcaseMailmeteor {
               "If you plan to attend, please complete the registration form. It takes a few minutes: your staff, your room preference and any other European Recruiting Soccer Tour stops you can make.",
             ),
             p(
-              "Once we receive it, our team will confirm your hotel room and airport pick-up. Registered coaches receive the final schedule and the player book in January.",
+              `Once we receive it, our team will confirm your hotel room and airport pick-up. Registered coaches receive the final schedule in January, and every player profile will be available in our new <a href="${link(APP, tag, "app")}" style="color:${RED};font-weight:bold;text-decoration:none;">Eture App</a> (eture.app).`,
             ),
             button("Complete the registration form", link(REGISTER, tag, "cta2")),
             small("If you have already registered, thank you, and please disregard this reminder."),
@@ -888,8 +889,8 @@ function plainReminder(): ShowcaseMailmeteor {
 ${para("Coach {{Last name}},")}
 ${para("We are following up on our recent email about the <strong>Eture Showcase 2027</strong>, which will take place in Valencia, Spain, from 8 to 11 February 2027.")}
 ${para(`If you and your staff are planning to attend, we would be grateful if you could confirm by completing the registration form: <a href="${link(REGISTER, tag, "form")}" style="color:${RED};font-weight:bold;">Eture Showcase 2027 registration</a>.`)}
-${para("It takes only a few minutes. Once we receive it, our team will confirm your hotel room and airport pick-up, and in January we will send you the final schedule and the player book.")}
-${para("As a reminder, more than 150 Spanish, American and international players will take part, all scouted and selected by Eture. It is a closed showcase, not an open one.")}
+${para(`It takes only a few minutes. Once we receive it, our team will confirm your hotel room and airport pick-up. In January we will send you the final schedule, and you will find every player profile in our new <a href="${link(APP, tag, "app")}" style="color:${RED};font-weight:bold;text-decoration:none;">Eture App</a> (eture.app).`)}
+${para("As a reminder, more than 200 filtered profiles will take part: Spanish, American and international players, all scouted and selected by Eture. It is a closed showcase, not an open one.")}
 ${para("If you have any questions, simply reply to this email or write to <a href=\"mailto:showcase@eturesports.com\" style=\"color:#222222;\">showcase@eturesports.com</a>. If you have already registered, thank you, and please disregard this message.")}
 ${para("Kind regards,")}
 <p style="font-family:${FONT};font-size:15px;line-height:23px;color:#222222;margin:0;"><strong>Eture Sports</strong><br /><span style="color:${MUTED};">Eture Showcase 2027 · 8–11 February · Valencia, Spain</span><br /><a href="${link("https://www.eturesports.com/showcase", tag, "signature")}" style="color:${MUTED};">eturesports.com/showcase</a></p>
@@ -924,7 +925,7 @@ function pendingEmail(): ShowcaseMailmeteor {
     key: "sin-entrada-2027",
     list: "Lista - Sin entrada 2027",
     sendDate,
-    subject: "Coach {{Last name}}, your invitation: 150+ players, 4 days in Valencia",
+    subject: "Coach {{Last name}}, your invitation: 200+ filtered profiles in Valencia",
     altSubject: "Coach {{Last name}}, Spanish and American talent in Valencia this February",
     previewText: "The key details in one place: dates, players, the European Recruiting Soccer Tour and how to confirm.",
     html: shell({
@@ -939,7 +940,7 @@ function pendingEmail(): ShowcaseMailmeteor {
             h2("Your invitation to the Eture Showcase 2027"),
             p("Coach {{Last name}},"),
             p(
-              "From <strong>8 to 11 February 2027</strong>, more than <strong>150 Spanish, American and international players</strong>, all scouted and selected by Eture, will compete in front of college coaching staffs at the <strong>Eture Showcase</strong> in Valencia, Spain. In 2026, 68 programs, from NCAA Division I to the NJCAA, made the trip. We would be delighted to welcome {{School name}} to Valencia this year, and below you will find everything you need to plan your visit.",
+              "From <strong>8 to 11 February 2027</strong>, the <strong>Eture Showcase</strong> in Valencia, Spain, will bring together more than <strong>200 filtered profiles</strong>: Spanish, American and international players scouted and selected by Eture for the college pathway. It is a <strong>closed showcase, not an open one</strong>, so every player you evaluate has already been filtered by our staff. In 2026, 68 programs, from NCAA Division I to the NJCAA, made the trip. We would be delighted to welcome {{School name}} to Valencia this year, and below you will find everything you need to plan your visit.",
             ),
             button("Complete the registration form", link(REGISTER, tag, "cta1")),
           ].join(""),
@@ -950,8 +951,9 @@ function pendingEmail(): ShowcaseMailmeteor {
             rows([
               ["<strong>Dates</strong>", "Monday 8 – Thursday 11 February 2027"],
               ["<strong>Venue</strong>", "Eture campus, Valencia, Spain"],
-              ["<strong>Players</strong>", "More than 150, all scouted and selected by Eture"],
+              ["<strong>Players</strong>", "More than 200 filtered profiles, all scouted and selected by Eture"],
               ["<strong>Access</strong>", "Closed showcase: selected players only, not an open event"],
+              ["<strong>Player profiles</strong>", "Every profile in the new Eture App (eture.app)"],
               ["<strong>Format</strong>", "Two days of games, an Eture FC match and one-to-one meetings with players"],
               ["<strong>Coach package</strong>", "From €300 per coach: hotel, meals and transport"],
               ["<strong>Arrival</strong>", "Pick-up at Valencia airport or train station"],
@@ -962,7 +964,7 @@ function pendingEmail(): ShowcaseMailmeteor {
           [
             kicker("The players"),
             p(
-              "The Eture Showcase is a <strong>closed showcase, not an open one</strong>: players cannot sign up to take part. Every player on the field has been scouted and selected by our staff and trains under the Eture methodology in Spain, so we know each player's game, character and goals.",
+              `Players cannot sign up to take part: every player on the field has been scouted and selected by our staff and trains under the Eture methodology in Spain, so we know each player's game, character and goals. Every profile will be available in our new <a href="${link(APP, tag, "app")}" style="color:${RED};font-weight:bold;text-decoration:none;">Eture App</a> (eture.app).`,
             ),
             check("<strong>Spanish players</strong> scouted by Eture in Spain's senior and youth leagues. Our scouting team travels across the country to identify the best profiles ready for the college pathway. Today, 40% of the Spanish players in NCAA Division I came through Eture."),
             check("<strong>American players</strong> from our gap-year residential program, who return to the NCAA after a full season of senior football in Spain. Recent examples include Aidan Ahmad (Cal), Isaac Rosenthal (Northwestern), Nicholas Brown (Dartmouth) and Zolly Corrigan (Louisville)."),
@@ -1008,7 +1010,7 @@ function pendingEmail(): ShowcaseMailmeteor {
           [
             kicker("How to confirm"),
             p(
-              "Please complete the registration form with your staff, your room preference and any other European Recruiting Soccer Tour stops you plan to attend. Once we receive it, our team will confirm your hotel room and airport pick-up. Registered coaches receive the final schedule and the player book in January.",
+              `Please complete the registration form with your staff, your room preference and any other European Recruiting Soccer Tour stops you plan to attend. Once we receive it, our team will confirm your hotel room and airport pick-up. Registered coaches receive the final schedule in January, and every player profile will be available in our new <a href="${link(APP, tag, "app")}" style="color:${RED};font-weight:bold;text-decoration:none;">Eture App</a> (eture.app).`,
             ),
             button("Complete the registration form", link(REGISTER, tag, "cta2")),
             small(`Questions? Reply to this email or write to <a href="mailto:showcase@eturesports.com" style="color:${RED};text-decoration:none;">showcase@eturesports.com</a>. If you have registered in the last few days, thank you, and please disregard this message.`),

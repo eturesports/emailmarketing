@@ -30,6 +30,9 @@ reglas: hablar del evento, dar cifras exactas y pedir una sola cosa.
   ligas sénior y juveniles de toda España, buscando los perfiles preparados para
   el college pathway.
 - **Todos los jugadores** se forman con la metodología Eture en España.
+- **Más de 200 perfiles filtrados** (no «jugadores» a secas): es el mensaje del
+  párrafo inicial.
+- **Todos los perfiles estarán en la nueva Eture App** (eture.app).
 
 ## Contenido de la serie
 
@@ -74,7 +77,7 @@ operaciones (`claims`). Comprobación hecha el 16 nov 2026:
 
 | Cifra | Fuente | Estado |
 |---|---|---|
-| Más de 150 jugadores en el Showcase 2027 | Eture (16 nov 2026) | Confirmada |
+| Más de 200 jugadores (perfiles filtrados) en el Showcase 2027 | Eture (16 nov 2026) | Confirmada |
 | 68 programas en el Showcase 2026 | Base de operaciones | Verificada |
 | «Over 140» programas en todas las ediciones | Invitación | **Incorrecta: son 138.** Usar «more than 130» |
 | 780+ colocaciones desde 2015 | Base: 788 operaciones (729 personas) | Verificada (incluye traslados) |
