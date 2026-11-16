@@ -907,6 +907,10 @@ ${para("Kind regards,")}
 
 // --- Universidades sin entrada en 2027 (nov 2026) ----------------------------
 //
+// {{School name}} es la columna J de la pestaña: el nombre de la universidad
+// listo para una frase (sin sufijos de campus y con «the» delante de
+// «University of…»), según la pestaña «Nombres para correos».
+//
 // Para «Lista - Sin entrada 2027»: programas que aún no tienen ficha en la
 // lista de asistentes de Operations. No nos han respondido, así que el correo
 // reúne lo esencial del evento y pide completar el formulario. Una sola versión:
@@ -935,7 +939,7 @@ function pendingEmail(): ShowcaseMailmeteor {
             h2("Your invitation to the Eture Showcase 2027"),
             p("Coach {{Last name}},"),
             p(
-              "From <strong>8 to 11 February 2027</strong>, approximately <strong>150 Spanish, American and international players</strong> will compete in front of college coaching staffs at the <strong>Eture Showcase</strong> in Valencia, Spain. In 2026, 68 programs, from NCAA Division I to the NJCAA, made the trip. We would be delighted to welcome your staff this year, and below you will find everything you need to plan your visit.",
+              "From <strong>8 to 11 February 2027</strong>, approximately <strong>150 Spanish, American and international players</strong> will compete in front of college coaching staffs at the <strong>Eture Showcase</strong> in Valencia, Spain. In 2026, 68 programs, from NCAA Division I to the NJCAA, made the trip. We would be delighted to welcome {{School name}} to Valencia this year, and below you will find everything you need to plan your visit.",
             ),
             button("Complete the registration form", link(REGISTER, tag, "cta1")),
           ].join(""),
