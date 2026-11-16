@@ -871,8 +871,41 @@ function playersEmail(variant: "returning" | "new"): ShowcaseMailmeteor {
   };
 }
 
+// --- Recordatorio breve (16 nov 2026) ----------------------------------------
+//
+// Seguimiento en texto, sin diseño, del correo anterior. Mismo texto para las
+// dos listas: no cita la universidad, porque los nombres de la base («University
+// of California - Los Angeles - UCLA») quedan mal en una frase.
+
+function plainReminder(): ShowcaseMailmeteor {
+  const sendDate = "2026-11-16";
+  const tag = "reminder1";
+  const para = (html: string) =>
+    `<p style="font-family:${FONT};font-size:15px;line-height:23px;color:#222222;margin:0 0 14px;">${html}</p>`;
+  const html = `<div style="max-width:600px;">
+${para("Coach {{Last name}},")}
+${para("We are following up on our recent email about the <strong>Eture Showcase 2027</strong>, which will take place in Valencia, Spain, from 8 to 11 February 2027.")}
+${para(`If you and your staff are planning to attend, we would be grateful if you could confirm by completing the registration form: <a href="${link(REGISTER, tag, "form")}" style="color:${RED};font-weight:bold;">Eture Showcase 2027 registration</a>.`)}
+${para("It takes only a few minutes. Once we receive it, our team will confirm your hotel room and airport pick-up, and in January we will send you the final schedule and the player book.")}
+${para("As a reminder, approximately 150 Spanish, American and international players will take part, all from our recruiting agency and our residential development program in Spain.")}
+${para("If you have any questions, simply reply to this email or write to <a href=\"mailto:showcase@eturesports.com\" style=\"color:#222222;\">showcase@eturesports.com</a>. If you have already registered, thank you, and please disregard this message.")}
+${para("Kind regards,")}
+<p style="font-family:${FONT};font-size:15px;line-height:23px;color:#222222;margin:0;"><strong>Eture Sports</strong><br /><span style="color:${MUTED};">Eture Showcase 2027 · 8–11 February · Valencia, Spain</span><br /><a href="${link("https://www.eturesports.com/showcase", tag, "signature")}" style="color:${MUTED};">eturesports.com/showcase</a></p>
+</div>`;
+  return {
+    key: "recordatorio-1",
+    list: "Lista - Han venido + Lista - Nunca han venido",
+    sendDate,
+    subject: "Eture Showcase 2027: confirming your attendance",
+    altSubject: "Coach {{Last name}}, following up on our Showcase invitation",
+    previewText: "If you and your staff are planning to attend, please complete the registration form.",
+    html,
+  };
+}
+
 export const SHOWCASE_2027_MAILMETEOR: ShowcaseMailmeteor[] = [
   ...SHOWCASE_2027_FOLLOWUP.map((f) => ({ ...f, key: `seguimiento-${f.key}`, sendDate: FOLLOWUP_DATE })),
   playersEmail("returning"),
   playersEmail("new"),
+  plainReminder(),
 ];

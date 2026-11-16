@@ -40,6 +40,7 @@ formulario.
 |---|---|---|---|
 | 13–26 oct | Invitación | Evento completo | Confirmar asistencia |
 | 12–13 nov | Seguimiento | Recordatorio, en dos versiones (han venido / nunca) | Completar el formulario |
+| 16–17 nov | Recordatorio breve | Correo en texto, sin diseño: confirmar en el formulario | Completar el formulario |
 | 24 nov | Los jugadores | Número aproximado, talento español y estadounidense, posiciones | Completar el formulario |
 | 8 dic | El evento | Programa día a día, paquete, cómo llegar, qué pasa tras registrarse | Completar el formulario |
 | 22 dic | Recordatorio breve | Antes del parón de vacaciones | Completar el formulario |
