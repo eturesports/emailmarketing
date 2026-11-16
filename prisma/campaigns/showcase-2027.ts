@@ -31,6 +31,7 @@ const LINE = "#e8e8ed";
 const BG = "#f5f5f7";
 const FONT = "Arial,Helvetica,sans-serif";
 
+const LOGO = "https://www.eturesports.com/logo-mark.png";
 const IMG_HERO = "https://lh3.googleusercontent.com/d/1PsaL6a7X9Xn4uK7_ON7XC3XI1k7WE-aX=w1200";
 const IMG_STANDS = "https://www.eturesports.com/_next/image?url=%2Fimages%2Fshowcase%2F2026%2Fg-10.webp&w=1200&q=75";
 const IMG_PITCH = "https://www.eturesports.com/_next/image?url=%2Fimages%2Fshowcase%2F2026%2Fday2-2.webp&w=1200&q=75";
@@ -158,6 +159,7 @@ function shell({ sendDate, preheader, topic, body, countdown = true }: ShellOpti
 <table role="presentation" width="100%" border="0" cellpadding="0" cellspacing="0" style="background:${BG};"><tr><td style="padding:32px 12px;">
 <table role="presentation" align="center" width="100%" border="0" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background:#ffffff;border:1px solid ${LINE};border-radius:20px;overflow:hidden;">
 <tr><td style="padding:28px 24px 26px;text-align:center;">
+  <img src="${LOGO}" alt="Eture Sports" width="64" style="display:block;width:64px;height:auto;border:0;margin:0 auto 16px;" />
   <h1 style="font-family:${FONT};font-size:38px;line-height:42px;font-weight:800;letter-spacing:-1px;text-transform:uppercase;color:${INK};margin:0 0 10px;">Eture Showcase 2027</h1>
   <p style="font-family:${FONT};font-size:12px;line-height:18px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;color:${MUTED};margin:0;">8–11 February&nbsp;&nbsp;·&nbsp;&nbsp;Valencia, Spain${countdown ? `&nbsp;&nbsp;·&nbsp;&nbsp;<span style="color:${RED};">${left} days to go</span>` : ""}</p>
   ${topic ? `<p style="font-family:${FONT};font-size:14px;line-height:20px;color:${SOFT};margin:14px 0 0;">In this issue: ${topic}</p>` : ""}
@@ -938,9 +940,9 @@ function pendingEmail(): ShowcaseMailmeteor {
         section(
           [
             h2("Your invitation to the Eture Showcase 2027"),
-            p("Coach {{Last name}},"),
+            p("Coach {{ First name }},"),
             p(
-              "From <strong>8 to 11 February 2027</strong>, the <strong>Eture Showcase</strong> in Valencia, Spain, will bring together more than <strong>200 filtered profiles</strong>: Spanish, American and international players scouted and selected by Eture for the college pathway. It is a <strong>closed showcase, not an open one</strong>, so every player you evaluate has already been filtered by our staff. In 2026, 68 programs, from NCAA Division I to the NJCAA, made the trip. We would be delighted to welcome {{School name}} to Valencia this year, and below you will find everything you need to plan your visit.",
+              "From <strong>8 to 11 February 2027</strong>, the <strong>Eture Showcase</strong> in Valencia, Spain, will bring together more than <strong>200 filtered profiles</strong>: Spanish, American and international players scouted and selected by Eture for the college pathway. It is a <strong>closed showcase, not an open one</strong>, so every player you evaluate has already been filtered by our staff. In 2026, 68 programs, from NCAA Division I to the NJCAA, made the trip. We would be delighted to welcome {{ School name }} to Valencia this year, and below you will find everything you need to plan your visit.",
             ),
             button("Complete the registration form", link(REGISTER, tag, "cta1")),
           ].join(""),
@@ -954,9 +956,7 @@ function pendingEmail(): ShowcaseMailmeteor {
               ["<strong>Players</strong>", "More than 200 filtered profiles, all scouted and selected by Eture"],
               ["<strong>Access</strong>", "Closed showcase: selected players only, not an open event"],
               ["<strong>Player profiles</strong>", "Every profile in the new Eture App (eture.app)"],
-              ["<strong>Format</strong>", "Two days of games, an Eture FC match and one-to-one meetings with players"],
-              ["<strong>Coach package</strong>", "From €300 per coach: hotel, meals and transport"],
-              ["<strong>Arrival</strong>", "Pick-up at Valencia airport or train station"],
+              ["<strong>Format</strong>", "Welcome cocktail, two days of games, an Eture FC match and meetings"],
             ]),
           ].join(""),
         ),
@@ -964,10 +964,10 @@ function pendingEmail(): ShowcaseMailmeteor {
           [
             kicker("The players"),
             p(
-              `Players cannot sign up to take part: every player on the field has been scouted and selected by our staff and trains under the Eture methodology in Spain, so we know each player's game, character and goals. Every profile will be available in our new <a href="${link(APP, tag, "app")}" style="color:${RED};font-weight:bold;text-decoration:none;">Eture App</a> (eture.app).`,
+              `Players cannot sign up to take part: every player on the field has been scouted and selected by our staff, so we know each player's game, character and goals. Every profile will be available in our new <a href="${link(APP, tag, "app")}" style="color:${RED};font-weight:bold;text-decoration:none;">Eture App</a> (eture.app).`,
             ),
             check("<strong>Spanish players</strong> scouted by Eture in Spain's senior and youth leagues. Our scouting team travels across the country to identify the best profiles ready for the college pathway. Today, 40% of the Spanish players in NCAA Division I came through Eture."),
-            check("<strong>American players</strong> from our gap-year residential program, who return to the NCAA after a full season of senior football in Spain. Recent examples include Aidan Ahmad (Cal), Isaac Rosenthal (Northwestern), Nicholas Brown (Dartmouth) and Zolly Corrigan (Louisville)."),
+            check("<strong>American players</strong> from our gap-year residential program, who return to the NCAA after at least one full season of senior football in Spain. Recent examples include Aidan Ahmad (Cal), Isaac Rosenthal (Northwestern), Nicholas Brown (Dartmouth) and Zolly Corrigan (Louisville)."),
             check("<strong>International players</strong> who train under the Eture methodology in Spain or have been scouted by our international scouts."),
           ].join(""),
         ),
