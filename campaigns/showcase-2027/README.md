@@ -57,7 +57,7 @@ formulario.
 | 8 dic | El evento | Programa día a día, paquete, cómo llegar, qué pasa tras registrarse | Completar el formulario |
 | 22 dic | Recordatorio breve | Antes del parón de vacaciones | Completar el formulario |
 | 5 ene | Viaje y gira europea | Combinar Valencia con otra parada y descuento | Completar el formulario |
-| 19 ene | Player book | Sólo lo reciben los registrados | Completar el formulario |
+| 19 ene | Eture App y quién viene | Los perfiles de los jugadores en eture.app y los programas ya registrados | Completar el formulario |
 | 2 feb | Último aviso | Datos prácticos en una página | Completar el formulario |
 
 **Recordatorio intermedio.** Una semana después de cada correo principal sale un
