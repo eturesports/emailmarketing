@@ -806,8 +806,8 @@ function playersEmail(variant: "returning" | "new"): ShowcaseMailmeteor {
   const previewText = "More than 150 Spanish, American and international players. 8–11 February 2027, Valencia.";
   const context =
     variant === "returning"
-      ? "Thank you again for joining us in {{Last showcase}}. As in previous editions, every player on the field comes through our recruiting agency or our residential development program in Spain, so our staff knows each player's game, character and goals."
-      : "Every player on the field comes through our recruiting agency or our residential development program in Spain, so our staff knows each player's game, character and goals. In 2026, 68 college programs attended, from NCAA Division I to the NJCAA.";
+      ? "Thank you again for joining us in {{Last showcase}}. As in previous editions, it is a <strong>closed showcase, not an open one</strong>: every player on the field has been scouted and selected by our staff and trains under the Eture methodology in Spain."
+      : "The Eture Showcase is a <strong>closed showcase, not an open one</strong>: players cannot sign up to take part. Every player on the field has been scouted and selected by our staff and trains under the Eture methodology in Spain, so we know each player's game, character and goals. In 2026, 68 college programs attended, from NCAA Division I to the NJCAA.";
   return {
     key: `jugadores-${variant === "returning" ? "han-venido" : "nunca-han-venido"}`,
     list: variant === "returning" ? "Lista - Han venido" : "Lista - Nunca han venido",
@@ -836,14 +836,14 @@ function playersEmail(variant: "returning" | "new"): ShowcaseMailmeteor {
           [
             kicker("Spanish talent"),
             p(
-              "Players developed in Spanish academy football and in senior competition with Eture FC, with daily training at our Valencia and Vinaròs campuses. Today, <strong>40% of the Spanish players in NCAA Division I</strong> came through Eture.",
+              "Players scouted by Eture in Spain's senior and youth leagues. Our scouting team travels across the country analysing the best profiles ready for the college pathway, and every player trains under the Eture methodology. Today, <strong>40% of the Spanish players in NCAA Division I</strong> came through Eture.",
             ),
             kicker("American talent"),
             p(
               "Players from our gap-year residential program, who spend a full season in Spain training daily and competing in senior football before returning to the NCAA. Recent examples include Aidan Ahmad (Cal), Isaac Rosenthal (Northwestern), Nicholas Brown (Dartmouth) and Zolly Corrigan (Louisville).",
             ),
             kicker("International talent"),
-            p("Players from other countries who complete the same program in Spain, with the academic preparation to arrive eligible.", "margin:0;"),
+            p("Players from other countries who train under the same Eture methodology in Spain.", "margin:0;"),
           ].join(""),
         ),
         stats(
@@ -889,7 +889,7 @@ ${para("Coach {{Last name}},")}
 ${para("We are following up on our recent email about the <strong>Eture Showcase 2027</strong>, which will take place in Valencia, Spain, from 8 to 11 February 2027.")}
 ${para(`If you and your staff are planning to attend, we would be grateful if you could confirm by completing the registration form: <a href="${link(REGISTER, tag, "form")}" style="color:${RED};font-weight:bold;">Eture Showcase 2027 registration</a>.`)}
 ${para("It takes only a few minutes. Once we receive it, our team will confirm your hotel room and airport pick-up, and in January we will send you the final schedule and the player book.")}
-${para("As a reminder, more than 150 Spanish, American and international players will take part, all from our recruiting agency and our residential development program in Spain.")}
+${para("As a reminder, more than 150 Spanish, American and international players will take part, all scouted and selected by Eture. It is a closed showcase, not an open one.")}
 ${para("If you have any questions, simply reply to this email or write to <a href=\"mailto:showcase@eturesports.com\" style=\"color:#222222;\">showcase@eturesports.com</a>. If you have already registered, thank you, and please disregard this message.")}
 ${para("Kind regards,")}
 <p style="font-family:${FONT};font-size:15px;line-height:23px;color:#222222;margin:0;"><strong>Eture Sports</strong><br /><span style="color:${MUTED};">Eture Showcase 2027 · 8–11 February · Valencia, Spain</span><br /><a href="${link("https://www.eturesports.com/showcase", tag, "signature")}" style="color:${MUTED};">eturesports.com/showcase</a></p>
@@ -939,7 +939,7 @@ function pendingEmail(): ShowcaseMailmeteor {
             h2("Your invitation to the Eture Showcase 2027"),
             p("Coach {{Last name}},"),
             p(
-              "From <strong>8 to 11 February 2027</strong>, more than <strong>150 Spanish, American and international players</strong> will compete in front of college coaching staffs at the <strong>Eture Showcase</strong> in Valencia, Spain. In 2026, 68 programs, from NCAA Division I to the NJCAA, made the trip. We would be delighted to welcome {{School name}} to Valencia this year, and below you will find everything you need to plan your visit.",
+              "From <strong>8 to 11 February 2027</strong>, more than <strong>150 Spanish, American and international players</strong>, all scouted and selected by Eture, will compete in front of college coaching staffs at the <strong>Eture Showcase</strong> in Valencia, Spain. In 2026, 68 programs, from NCAA Division I to the NJCAA, made the trip. We would be delighted to welcome {{School name}} to Valencia this year, and below you will find everything you need to plan your visit.",
             ),
             button("Complete the registration form", link(REGISTER, tag, "cta1")),
           ].join(""),
@@ -950,7 +950,8 @@ function pendingEmail(): ShowcaseMailmeteor {
             rows([
               ["<strong>Dates</strong>", "Monday 8 – Thursday 11 February 2027"],
               ["<strong>Venue</strong>", "Eture campus, Valencia, Spain"],
-              ["<strong>Players</strong>", "More than 150"],
+              ["<strong>Players</strong>", "More than 150, all scouted and selected by Eture"],
+              ["<strong>Access</strong>", "Closed showcase: selected players only, not an open event"],
               ["<strong>Format</strong>", "Two days of games, an Eture FC match and one-to-one meetings with players"],
               ["<strong>Coach package</strong>", "From €300 per coach: hotel, meals and transport"],
               ["<strong>Arrival</strong>", "Pick-up at Valencia airport or train station"],
@@ -961,11 +962,11 @@ function pendingEmail(): ShowcaseMailmeteor {
           [
             kicker("The players"),
             p(
-              "Every player on the field comes through our recruiting agency or our residential development program in Spain, so our staff knows each player's game, character and goals.",
+              "The Eture Showcase is a <strong>closed showcase, not an open one</strong>: players cannot sign up to take part. Every player on the field has been scouted and selected by our staff and trains under the Eture methodology in Spain, so we know each player's game, character and goals.",
             ),
-            check("<strong>Spanish players</strong> developed in academy football and in senior competition with Eture FC. Today, 40% of the Spanish players in NCAA Division I came through Eture."),
+            check("<strong>Spanish players</strong> scouted by Eture in Spain's senior and youth leagues. Our scouting team travels across the country to identify the best profiles ready for the college pathway. Today, 40% of the Spanish players in NCAA Division I came through Eture."),
             check("<strong>American players</strong> from our gap-year residential program, who return to the NCAA after a full season of senior football in Spain. Recent examples include Aidan Ahmad (Cal), Isaac Rosenthal (Northwestern), Nicholas Brown (Dartmouth) and Zolly Corrigan (Louisville)."),
-            check("<strong>International players</strong> who complete the same program in Spain."),
+            check("<strong>International players</strong> who train under the same Eture methodology in Spain."),
           ].join(""),
         ),
         section(

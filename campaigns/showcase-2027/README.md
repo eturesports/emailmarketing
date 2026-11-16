@@ -22,6 +22,15 @@ reglas: hablar del evento, dar cifras exactas y pedir una sola cosa.
 - **Firma de una persona** con nombre y cargo, no de «the team».
 - **Correos breves**: un tema por envío y el botón arriba, no al final.
 
+## Mensajes clave sobre los jugadores
+
+- **Es un showcase cerrado, no abierto** («a closed showcase, not an open
+  one»): los jugadores no se apuntan; todos están seleccionados por Eture.
+- **Jugadores españoles**: captados por el equipo de scouting de Eture en las
+  ligas sénior y juveniles de toda España, buscando los perfiles preparados para
+  el college pathway.
+- **Todos los jugadores** se forman con la metodología Eture en España.
+
 ## Contenido de la serie
 
 Todos los correos hablan de tres cosas: el evento, los jugadores y el
