@@ -48,41 +48,127 @@ def whatsapp(text):
     return f"{WHATSAPP}?text={quote(text, safe='')}"
 
 
-def button(href, label, primary=True, on_dark=False):
-    if on_dark and not primary:
-        bg, fg, border = "transparent", "#ffffff", "#6e6e73"
-    else:
-        bg = BRAND if primary else "#ffffff"
-        fg = "#ffffff" if primary else INK
-        border = BRAND if primary else "#c7c7cc"
-    return f"""<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="display:inline-table;margin:0 8px 8px 0;">
+# Tipografía de titulares de eturesports.com (United Sans Heavy). Apple Mail,
+# iOS y Outlook para Mac la cargan desde la web; Gmail y Outlook para Windows
+# usan el respaldo.
+DISPLAY = "'United Sans','Poppins',Arial,Helvetica,sans-serif"
+DISPLAY_FONT_FACE = (
+    "@font-face { font-family:'United Sans'; font-weight:700; font-style:normal; "
+    f"src:url('{SITE}/fonts/united-sans/UnitedSans-Heavy.woff2') format('woff2'); }}"
+)
+RADIUS = 24
+DIVIDER = "#e3e3e8"
+
+# Botones en píldora, como en la web:
+#   primary   rojo con texto blanco
+#   secondary blanco con borde gris claro
+#   light     blanco con texto rojo, sobre fondo rojo
+#   ghost     transparente con borde blanco, sobre fondo rojo u oscuro
+BUTTONS = {
+    "primary": (BRAND, "#ffffff", BRAND),
+    "secondary": ("#ffffff", INK, LINE),
+    "light": ("#ffffff", BRAND, "#ffffff"),
+    "ghost": ("transparent", "#ffffff", "#c9777a"),
+}
+
+
+def button(href, label, primary=True, on_dark=False, variant=None):
+    if variant is None:
+        variant = "primary" if primary else ("ghost" if on_dark else "secondary")
+    bg, fg, border = BUTTONS[variant]
+    return f"""<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="display:inline-table;margin:0 4px 8px;">
   <tr><td align="center" bgcolor="{bg}" style="border-radius:999px;border:1px solid {border};">
-    <a href="{href}" target="_blank" style="display:inline-block;padding:12px 22px;font-family:{FONT};font-size:14px;font-weight:600;line-height:18px;color:{fg};text-decoration:none;border-radius:999px;">{label}</a>
+    <a href="{href}" target="_blank" style="display:inline-block;padding:12px 22px;font-family:{FONT};font-size:14px;font-weight:500;line-height:18px;color:{fg};text-decoration:none;border-radius:999px;">{label}</a>
   </td></tr>
 </table>"""
 
 
-def eyebrow(text, color=BRAND):
-    return f'<p style="margin:0 0 8px;font-family:{FONT};font-size:12px;line-height:16px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:{color};">{text}</p>'
+def eyebrow(text, color=BRAND, align="left"):
+    return f'<p style="margin:0 0 10px;font-family:{FONT};font-size:12px;line-height:16px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:{color};text-align:{align};">{text}</p>'
 
 
-def h2(text, color=INK, size=24):
-    return f'<h2 style="margin:0 0 12px;font-family:{FONT};font-size:{size}px;line-height:{size + 6}px;font-weight:700;color:{color};">{text}</h2>'
+def display(text, color=BRAND, size=30, upper=True, align="left", margin="0 0 14px", tag="h2", cls=""):
+    """Titular con la tipografía de la web: mayúsculas para secciones, normal para tarjetas."""
+    transform = "text-transform:uppercase;" if upper else ""
+    klass = f' class="{cls}"' if cls else ""
+    return (
+        f'<{tag}{klass} style="margin:{margin};font-family:{DISPLAY};font-size:{size}px;line-height:{round(size * 1.05)}px;'
+        f'font-weight:700;letter-spacing:-.02em;{transform}color:{color};text-align:{align};">{text}</{tag}>'
+    )
+
+
+def h2(text, color=BRAND, size=22):
+    """Título de tarjeta (sin mayúsculas), como «Eture ID Summer Camp» en la web."""
+    return display(text, color, size, upper=False)
+
+
+def lead(text, color=SOFT, size=15, align="left", margin="0 0 16px"):
+    """Texto de apoyo gris; las palabras clave van en <strong>, que se pinta en tinta."""
+    strong = INK if color == SOFT else "#ffffff"
+    text = text.replace("<strong>", f'<strong style="color:{strong};font-weight:600;">')
+    return f'<p style="margin:{margin};font-family:{FONT};font-size:{size}px;line-height:{round(size * 1.6)}px;color:{color};text-align:{align};">{text}</p>'
+
+
+def section_header(kicker, title, text=None, dark=False, align="center", size=30):
+    """Cabecera de sección de la web: etiqueta roja, titular en mayúsculas y texto gris."""
+    title_color = "#ffffff" if dark else BRAND
+    kicker_color = "#ff8a8f" if dark else BRAND
+    out = eyebrow(kicker, kicker_color, align) if kicker else ""
+    out += display(title, title_color, size, align=align, cls="sh")
+    if text:
+        out += lead(text, "#d2d2d7" if dark else SOFT, align=align, margin="0")
+    return out
 
 
 def para(text, color=INK, size=16, margin="0 0 16px"):
     return f'<p style="margin:{margin};font-family:{FONT};font-size:{size}px;line-height:{round(size * 1.55)}px;color:{color};">{text}</p>'
 
 
-def stats_row(stats, color=BRAND, label_color=SOFT):
-    cells = "".join(
-        f"""<td class="half" width="{round(100 / len(stats))}%" valign="top" style="padding:0 6px 16px;text-align:center;">
-          <div style="font-family:{FONT};font-size:28px;line-height:32px;font-weight:700;color:{color};">{n}</div>
-          <div style="font-family:{FONT};font-size:12px;line-height:17px;color:{label_color};padding-top:4px;">{label}</div>
-        </td>"""
-        for n, label in stats
+def card(inner, bg="#ffffff", padding="24px"):
+    """Tarjeta de la web: esquinas muy redondeadas, sin bordes."""
+    return f"""<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="{bg}" style="background:{bg};border-radius:{RADIUS}px;">
+  <tr><td style="padding:{padding};">{inner}</td></tr>
+</table>"""
+
+
+def hero(kicker, headline, sub, buttons=""):
+    """Bloque oscuro bajo la foto de cabecera, centrado como el hero de la web."""
+    return f"""<tr><td class="px" bgcolor="{INK}" align="center" style="background:{INK};padding:34px 32px 30px;text-align:center;">
+        {eyebrow(kicker, '#ff8a8f', 'center')}
+        {display(headline, '#ffffff', 42, align='center', tag='h1', cls='h1')}
+        {lead(sub, '#d2d2d7', 16, 'center', '0 0 24px' if buttons else '0')}
+        {buttons}
+      </td></tr>"""
+
+
+def callout(kicker, title, text, buttons):
+    """Bloque rojo de llamada a la acción, como «Talk to our admissions team» en la web."""
+    inner = (
+        eyebrow(kicker, "#f3c9cb", "center")
+        + display(title, "#ffffff", 28, align="center", cls="sh")
+        + lead(text, "#f6dcdd", align="center", margin="0 0 22px" if buttons else "0")
+        + (f'<div style="text-align:center;">{buttons}</div>' if buttons else "")
     )
-    return f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>{cells}</tr></table>'
+    return card(inner, BRAND, "34px 26px 28px")
+
+
+def stats_strip(stats, bg=SURFACE):
+    """Franja de cifras de la web: fondo gris, divisores finos y números en rojo."""
+    n = len(stats)
+    cells = "".join(
+        f"""<td class="half" width="{round(100 / n)}%" valign="top" style="padding:18px 6px 16px;text-align:center;{'' if i == 0 else f'border-left:1px solid {DIVIDER};'}">
+          <div style="font-family:{DISPLAY};font-size:28px;line-height:30px;font-weight:700;letter-spacing:-.02em;color:{BRAND};">{num}</div>
+          <div style="font-family:{FONT};font-size:12px;line-height:16px;color:{SOFT};padding-top:6px;">{label}</div>
+        </td>"""
+        for i, (num, label) in enumerate(stats)
+    )
+    return f"""<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="{bg}" style="background:{bg};border-radius:{RADIUS}px;table-layout:fixed;">
+  <tr>{cells}</tr>
+</table>"""
+
+
+# Compatibilidad con los primeros scripts.
+stats_row = stats_strip
 
 
 def full_image(src, alt, href=None, width=600):
@@ -171,7 +257,8 @@ def page(*, lang, title, preheader, label, home, body, footer):
 <title>{title}</title>
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet" />
 <style>
-  body {{ margin:0; padding:0; background:{SURFACE}; }}
+  {DISPLAY_FONT_FACE}
+  body {{ margin:0; padding:0; background:#ffffff; }}
   a {{ color:{BRAND}; }}
   @media (max-width:620px) {{
     .container {{ width:100% !important; border-radius:0 !important; }}
@@ -184,14 +271,15 @@ def page(*, lang, title, preheader, label, home, body, footer):
     .crop2 {{ height:116px !important; }}
     .blabel {{ font-size:7px !important; letter-spacing:-.02em; }}
     .half {{ display:inline-block !important; width:50% !important; box-sizing:border-box; }}
-    .h1 {{ font-size:28px !important; line-height:34px !important; }}
+    .h1 {{ font-size:34px !important; line-height:36px !important; }}
+    .sh {{ font-size:24px !important; line-height:26px !important; }}
   }}
 </style>
 </head>
-<body style="margin:0;padding:0;background:{SURFACE};">
+<body style="margin:0;padding:0;background:#ffffff;">
 <div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;">{preheader}&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;</div>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="{SURFACE}" style="background:{SURFACE};">
-  <tr><td align="center" style="padding:24px 0;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="background:#ffffff;">
+  <tr><td align="center" style="padding:16px 0;">
     <table role="presentation" class="container" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px;max-width:600px;background:#ffffff;border-radius:20px;overflow:hidden;">
 
       <!-- Cabecera -->

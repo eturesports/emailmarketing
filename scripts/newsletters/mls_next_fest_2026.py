@@ -12,8 +12,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from common import (  # noqa: E402
-    BRAND, FONT, INK, LINE, OPS, OPS_PATH, SOFT, SURFACE, TINT,
-    button, eyebrow, full_image, h2, img, linker, page, para, stats_row, whatsapp, write,
+    BRAND, DISPLAY, DIVIDER, FONT, INK, OPS, OPS_PATH, RADIUS, SOFT, SURFACE,
+    button, callout, card, display, eyebrow, full_image, h2, hero, img, lead, linker, page, para,
+    section_header, stats_strip, whatsapp, write,
 )
 
 link = linker("mls-next-fest-2026")
@@ -23,6 +24,7 @@ COPY = {
         "title": "See you at MLS NEXT Fest",
         "preheader": "Dec 2–13 · Phoenix, Arizona. Our recruiting team will be at the fields — let's meet in person.",
         "label": "MLS NEXT Fest 2026",
+        "kickers": {"event": "MLS NEXT Fest 2026", "what": "In Phoenix", "proof": "Eture Sports", "steps": "Next step", "final": "Limited spots"},
         "alt_hero": "Ten Eture players now in NCAA programmes, in the kit of the universities that signed them",
         "eyebrow": "MLS NEXT Fest · Dec 2–13, 2026 · Phoenix, AZ",
         "headline": "See you in Phoenix",
@@ -39,7 +41,7 @@ COPY = {
             ("Venues", "Arizona Athletic Grounds &amp; Red Mountain Park, Mesa (Phoenix area)"),
             ("Age groups", "U13 to U19 · 1,600+ teams"),
         ],
-        "what_title": "What we can do together in Phoenix",
+        "what_title": "What we can do together",
         "what": [
             ("01", "Meet the family", "A relaxed conversation at the venue with player and parents. Programs, timing, costs: every question on the table."),
             ("02", "Watch you play", "Send us your team, age group and game schedule. If it fits our schedule at the fields, we'll come and watch."),
@@ -68,6 +70,7 @@ COPY = {
         "title": "Nos vemos en el MLS NEXT Fest",
         "preheader": "Del 2 al 13 de diciembre · Phoenix, Arizona. Nuestro equipo de reclutamiento estará en los campos: veámonos en persona.",
         "label": "MLS NEXT Fest 2026",
+        "kickers": {"event": "MLS NEXT Fest 2026", "what": "En Phoenix", "proof": "Eture Sports", "steps": "Siguiente paso", "final": "Plazas limitadas"},
         "alt_hero": "Diez jugadores de Eture que hoy están en programas de la NCAA, con la equipación de las universidades que los ficharon",
         "eyebrow": "MLS NEXT Fest · 2–13 dic 2026 · Phoenix, AZ",
         "headline": "Nos vemos en Phoenix",
@@ -84,7 +87,7 @@ COPY = {
             ("Sedes", "Arizona Athletic Grounds y Red Mountain Park, Mesa (área de Phoenix)"),
             ("Categorías", "De U13 a U19 · más de 1.600 equipos"),
         ],
-        "what_title": "Qué podemos hacer juntos en Phoenix",
+        "what_title": "Qué podemos hacer juntos",
         "what": [
             ("01", "Conocer a la familia", "Una conversación tranquila en las instalaciones, con el jugador y sus padres. Programas, plazos, costes: todas las preguntas sobre la mesa."),
             ("02", "Verte jugar", "Mándanos tu equipo, tu categoría y tu calendario de partidos. Si encaja con nuestra agenda en los campos, iremos a verte."),
@@ -115,36 +118,31 @@ COPY = {
 def build(lang, c):
     call = link("/lp/book-a-call?for=programs", lang)
     wa = whatsapp(c["whatsapp_text"])
+    k = c["kickers"]
 
     event_rows = "".join(
         f"""<tr>
-          <td width="110" valign="top" style="padding:10px 0;border-top:1px solid {LINE};font-family:{FONT};font-size:12px;line-height:18px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:{BRAND};">{k}</td>
-          <td valign="top" style="padding:10px 0;border-top:1px solid {LINE};font-family:{FONT};font-size:14px;line-height:20px;color:{INK};">{v}</td>
+          <td width="110" valign="top" style="padding:12px 0;border-top:1px solid {DIVIDER};font-family:{FONT};font-size:12px;line-height:18px;font-weight:500;letter-spacing:.08em;text-transform:uppercase;color:{BRAND};">{key}</td>
+          <td valign="top" style="padding:12px 0;border-top:1px solid {DIVIDER};font-family:{FONT};font-size:14px;line-height:20px;color:{INK};">{value}</td>
         </tr>"""
-        for k, v in c["event"]
+        for key, value in c["event"]
     )
 
     what = "".join(
-        f"""<td class="stack" width="33%" valign="top" style="padding:0 6px;">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="background:#ffffff;border-radius:14px;">
-            <tr><td style="padding:18px 16px;font-family:{FONT};">
-              <div style="font-size:22px;line-height:26px;font-weight:700;color:{BRAND};">{n}</div>
-              <div style="font-size:16px;line-height:21px;font-weight:700;color:{INK};padding:6px 0 6px;">{t}</div>
-              <div style="font-size:13px;line-height:20px;color:{SOFT};">{d}</div>
-            </td></tr>
-          </table>
+        f"""<td class="stack" width="33%" valign="top" style="padding:0 5px;">
+          {card(display(n, BRAND, 30, margin='0 0 8px') + h2(t, BRAND, 18) + lead(d, size=13, margin='0'), '#ffffff', '22px 18px')}
         </td>"""
         for n, t, d in c["what"]
     )
 
     steps = "".join(
         f"""<tr>
-          <td width="34" valign="top" style="padding:0 0 14px;">
-            <div style="width:26px;height:26px;line-height:26px;border-radius:13px;background:{BRAND};color:#ffffff;text-align:center;font-family:{FONT};font-size:13px;font-weight:700;">{i}</div>
+          <td width="40" valign="top" style="padding:0 0 16px;">
+            <div style="width:30px;height:30px;line-height:30px;border-radius:15px;background:{BRAND};color:#ffffff;text-align:center;font-family:{DISPLAY};font-size:15px;font-weight:700;">{i}</div>
           </td>
-          <td valign="top" style="padding:2px 0 14px 8px;font-family:{FONT};font-size:15px;line-height:22px;color:{INK};">{s}</td>
+          <td valign="top" style="padding:4px 0 16px 8px;font-family:{FONT};font-size:15px;line-height:23px;color:{INK};">{step}</td>
         </tr>"""
-        for i, s in enumerate(c["steps"], start=1)
+        for i, step in enumerate(c["steps"], start=1)
     )
 
     intro = "".join(para(p) for p in c["intro"])
@@ -154,32 +152,22 @@ def build(lang, c):
       <tr><td style="padding:0;line-height:0;font-size:0;">
         {full_image(img('/images/heroes/trials-wide-1280.jpg'), c['alt_hero'], call)}
       </td></tr>
-      <tr><td class="px" bgcolor="{INK}" style="background:{INK};padding:32px 32px 30px;">
-        {eyebrow(c['eyebrow'], '#ff8a8f')}
-        <h1 class="h1" style="margin:0 0 12px;font-family:{FONT};font-size:34px;line-height:40px;font-weight:700;color:#ffffff;">{c['headline']}</h1>
-        {para(c['sub'], '#d2d2d7', margin='0 0 22px')}
-        {button(call, c['cta'])}{button(wa, c['whatsapp'], primary=False, on_dark=True)}
-      </td></tr>
+      {hero(c['eyebrow'], c['headline'], c['sub'], button(call, c['cta']) + button(wa, c['whatsapp'], variant='ghost'))}
 
       <!-- Intro -->
-      <tr><td class="px" style="padding:32px 32px 8px;">
+      <tr><td class="px" style="padding:34px 32px 10px;">
         {para(c['hello'])}
         {intro}
       </td></tr>
 
       <!-- El evento -->
-      <tr><td class="px" style="padding:8px 32px 28px;">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="{TINT}" style="background:{TINT};border-radius:16px;border-left:4px solid {BRAND};">
-          <tr><td style="padding:20px 22px 12px;">
-            {h2(c['event_title'], size=19)}
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">{event_rows}</table>
-          </td></tr>
-        </table>
+      <tr><td class="px" style="padding:6px 32px 34px;">
+        {card(eyebrow(k['event']) + h2(c['event_title'], BRAND, 22) + f'<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">{event_rows}</table>', SURFACE, '24px 24px 12px')}
       </td></tr>
 
       <!-- Qué haremos -->
-      <tr><td class="px" bgcolor="{SURFACE}" style="background:{SURFACE};padding:30px 26px 30px;">
-        <div style="padding:0 6px;">{h2(c['what_title'], size=22)}</div>
+      <tr><td class="px" bgcolor="{SURFACE}" style="background:{SURFACE};padding:36px 27px 34px;">
+        <div style="padding:0 5px 22px;">{section_header(k['what'], c['what_title'])}</div>
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>{what}</tr></table>
       </td></tr>
 
@@ -187,36 +175,28 @@ def build(lang, c):
       <tr><td style="padding:0;line-height:0;font-size:0;">
         {full_image(img('/images/showcase-77.jpg'), c['photo_alt'])}
       </td></tr>
-      <tr><td class="px" style="padding:10px 32px 0;font-family:{FONT};font-size:12px;line-height:17px;color:{SOFT};">{c['photo_caption']}</td></tr>
+      <tr><td class="px" style="padding:10px 32px 0;font-family:{FONT};font-size:12px;line-height:17px;color:{SOFT};text-align:center;">{c['photo_caption']}</td></tr>
 
       <!-- Con quién -->
-      <tr><td class="px" style="padding:30px 32px 8px;">
-        {h2(c['proof_title'], size=22)}
-        {para(c['proof_text'], SOFT, 15, '0 0 20px')}
-        {stats_row(c['stats'])}
-        <p style="margin:4px 0 0;font-family:{FONT};font-size:14px;line-height:20px;"><a href="{link(OPS_PATH[lang], lang)}" target="_blank" style="color:{BRAND};font-weight:600;text-decoration:none;">{c['proof_cta']} &rarr;</a></p>
+      <tr><td class="px" style="padding:38px 32px 10px;">
+        {section_header(k['proof'], c['proof_title'], c['proof_text'])}
+      </td></tr>
+      <tr><td class="px" style="padding:14px 32px 8px;">
+        {stats_strip(c['stats'])}
+        <p style="margin:16px 0 0;font-family:{FONT};font-size:14px;line-height:20px;text-align:center;"><a href="{link(OPS_PATH[lang], lang)}" target="_blank" style="color:{BRAND};font-weight:500;text-decoration:none;">{c['proof_cta']} &rarr;</a></p>
       </td></tr>
 
       <!-- Cómo quedar -->
-      <tr><td class="px" style="padding:30px 32px 10px;">
-        {h2(c['steps_title'], size=22)}
+      <tr><td class="px" style="padding:38px 32px 10px;">
+        <div style="padding-bottom:20px;">{section_header(k['steps'], c['steps_title'])}</div>
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">{steps}</table>
       </td></tr>
 
       <!-- Cierre -->
-      <tr><td class="px" style="padding:10px 20px 0;">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="{BRAND}" style="background:{BRAND};border-radius:20px;">
-          <tr><td align="center" style="padding:30px 24px 26px;text-align:center;">
-            {h2(c['final_title'], '#ffffff')}
-            {para(c['final_text'], '#fbe3e4', 15, '0 0 22px')}
-            <table role="presentation" align="center" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" bgcolor="#ffffff" style="border-radius:999px;">
-              <a href="{call}" target="_blank" style="display:inline-block;padding:13px 24px;font-family:{FONT};font-size:14px;font-weight:600;line-height:18px;color:{BRAND};text-decoration:none;border-radius:999px;">{c['cta']} &rarr;</a>
-            </td></tr></table>
-            <p style="margin:16px 0 0;font-family:{FONT};font-size:14px;line-height:20px;"><a href="{wa}" target="_blank" style="color:#ffffff;font-weight:600;text-decoration:underline;">{c['whatsapp']}</a></p>
-          </td></tr>
-        </table>
+      <tr><td class="px" style="padding:14px 20px 0;">
+        {callout(k['final'], c['final_title'], c['final_text'], button(call, c['cta'], variant='light') + button(wa, c['whatsapp'], variant='ghost'))}
       </td></tr>
-      <tr><td class="px" style="padding:28px 32px 32px;">
+      <tr><td class="px" style="padding:30px 32px 32px;">
         {para(c['sign'], size=15, margin='0')}
       </td></tr>
 """

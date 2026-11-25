@@ -10,8 +10,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from common import (  # noqa: E402
-    BRAND, FONT, INK, OPS, OPS_PATH, SEASONS, SOFT, SURFACE, TINT,
-    button, eyebrow, full_image, h2, img, linker, page, para, player_grid, season_chart, stats_row, write,
+    BRAND, DISPLAY, DIVIDER, FONT, INK, OPS, OPS_PATH, SEASONS, SOFT, SURFACE,
+    button, callout, full_image, hero, img, linker, page, para, player_grid, season_chart,
+    section_header, stats_strip, write,
 )
 
 link = linker("season-25-26-christmas")
@@ -32,6 +33,7 @@ COPY = {
         "title": "180 placements. One record season.",
         "preheader": f"Season 25/26 in numbers: {RECORD} college placements, our best year ever. Thank you, and Merry Christmas.",
         "label": "Season 25/26",
+        "kickers": {"stats": "Season 25/26", "faces": "Toros in the NCAA", "next": "2027", "xmas": "Happy holidays"},
         "alt_hero": "The Eture FC squad celebrating on the pitch after a night game",
         "eyebrow": "Season 25/26 in numbers",
         "headline": f"{RECORD} placements.<br />One record season.",
@@ -68,6 +70,7 @@ COPY = {
         "title": "180 colocaciones. Una temporada récord.",
         "preheader": f"La temporada 25/26 en cifras: {RECORD} colocaciones universitarias, nuestro mejor año. Gracias, y feliz Navidad.",
         "label": "Temporada 25/26",
+        "kickers": {"stats": "Temporada 25/26", "faces": "Toros en la NCAA", "next": "2027", "xmas": "Felices fiestas"},
         "alt_hero": "La plantilla del Eture FC celebrando en el campo tras un partido de noche",
         "eyebrow": "La temporada 25/26 en cifras",
         "headline": f"{RECORD} colocaciones.<br />Una temporada récord.",
@@ -107,13 +110,14 @@ def build(lang, c):
     ops = link(OPS_PATH[lang], lang)
     programs = link("/lp/programs", lang)
     intro = "".join(para(p) for p in c["intro"])
+    k = c["kickers"]
 
     next_rows = "".join(
         f"""<tr>
-          <td width="86" valign="top" style="padding:12px 0;border-top:1px solid #e8e8ed;font-family:{FONT};font-size:13px;line-height:18px;font-weight:700;color:{BRAND};">{when}</td>
-          <td valign="top" style="padding:12px 0;border-top:1px solid #e8e8ed;font-family:{FONT};">
-            <div style="font-size:15px;line-height:20px;font-weight:700;color:{INK};">{what}</div>
-            <div style="font-size:13px;line-height:19px;color:{SOFT};padding-top:2px;">{detail}</div>
+          <td width="90" valign="top" style="padding:14px 0;border-top:1px solid {DIVIDER};font-family:{DISPLAY};font-size:17px;line-height:22px;font-weight:700;letter-spacing:-.02em;text-transform:uppercase;color:{BRAND};">{when}</td>
+          <td valign="top" style="padding:14px 0;border-top:1px solid {DIVIDER};font-family:{FONT};">
+            <div style="font-family:{DISPLAY};font-size:18px;line-height:22px;font-weight:700;letter-spacing:-.02em;color:{INK};">{what}</div>
+            <div style="font-size:13px;line-height:20px;color:{SOFT};padding-top:4px;">{detail}</div>
           </td>
         </tr>"""
         for when, what, detail in c["next"]
@@ -124,52 +128,44 @@ def build(lang, c):
       <tr><td style="padding:0;line-height:0;font-size:0;">
         {full_image(img('/images/transfers/opportunity-eture-fc-team.jpg'), c['alt_hero'], ops)}
       </td></tr>
-      <tr><td class="px" bgcolor="{INK}" style="background:{INK};padding:32px 32px 30px;">
-        {eyebrow(c['eyebrow'], '#ff8a8f')}
-        <h1 class="h1" style="margin:0 0 12px;font-family:{FONT};font-size:34px;line-height:40px;font-weight:700;color:#ffffff;">{c['headline']}</h1>
-        {para(c['sub'], '#d2d2d7', margin='0')}
-      </td></tr>
+      {hero(c['eyebrow'], c['headline'], c['sub'])}
 
       <!-- Intro -->
-      <tr><td class="px" style="padding:32px 32px 8px;">
+      <tr><td class="px" style="padding:34px 32px 10px;">
         {para(c['hello'])}
         {intro}
       </td></tr>
 
       <!-- Cifras -->
-      <tr><td class="px" style="padding:8px 26px 8px;">
-        <div style="padding:0 6px;">{h2(c['stats_title'], size=20)}</div>
-        {stats_row(c['stats'])}
+      <tr><td class="px" style="padding:24px 32px 18px;">
+        {section_header(k['stats'], c['stats_title'])}
       </td></tr>
-      <tr><td class="px" style="padding:0 32px 30px;">
+      <tr><td class="px" style="padding:0 32px 14px;">
+        {stats_strip(c['stats'])}
+      </td></tr>
+      <tr><td class="px" style="padding:0 32px 36px;">
         {season_chart(c['chart'])}
       </td></tr>
 
       <!-- Caras -->
-      <tr><td class="px" bgcolor="{SURFACE}" style="background:{SURFACE};padding:30px 27px 18px;">
-        <div style="padding:0 5px;">{h2(c['faces_title'], size=20)}{para(c['faces_sub'], SOFT, 14)}</div>
+      <tr><td class="px" bgcolor="{SURFACE}" style="background:{SURFACE};padding:36px 27px 22px;">
+        <div style="padding:0 5px 22px;">{section_header(k['faces'], c['faces_title'], c['faces_sub'])}</div>
         {player_grid(SEASON_PLAYERS, ops)}
-        <p style="margin:6px 5px 8px;font-family:{FONT};font-size:14px;line-height:20px;"><a href="{ops}" target="_blank" style="color:{BRAND};font-weight:600;text-decoration:none;">{c['ops_cta']} &rarr;</a></p>
+        <p style="margin:8px 5px 8px;font-family:{FONT};font-size:14px;line-height:20px;text-align:center;"><a href="{ops}" target="_blank" style="color:{BRAND};font-weight:500;text-decoration:none;">{c['ops_cta']} &rarr;</a></p>
       </td></tr>
 
       <!-- 2027 -->
-      <tr><td class="px" style="padding:30px 32px 26px;">
-        {h2(c['next_title'], size=20)}
+      <tr><td class="px" style="padding:38px 32px 30px;">
+        <div style="padding-bottom:18px;">{section_header(k['next'], c['next_title'])}</div>
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">{next_rows}</table>
-        <div style="padding-top:16px;">{button(programs, c['next_cta'], primary=False)}</div>
+        <div style="padding-top:20px;text-align:center;">{button(programs, c['next_cta'], variant='secondary')}</div>
       </td></tr>
 
       <!-- Navidad -->
       <tr><td class="px" style="padding:0 20px;">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="{BRAND}" style="background:{BRAND};border-radius:20px;">
-          <tr><td align="center" style="padding:34px 26px 30px;text-align:center;">
-            <div style="font-size:30px;line-height:34px;padding-bottom:8px;">&#127876;</div>
-            {h2(c['xmas_title'], '#ffffff')}
-            {para(c['xmas_text'], '#fbe3e4', 15, '0')}
-          </td></tr>
-        </table>
+        {callout(k['xmas'], c['xmas_title'], c['xmas_text'], '')}
       </td></tr>
-      <tr><td class="px" style="padding:28px 32px 32px;">
+      <tr><td class="px" style="padding:30px 32px 32px;">
         {para(c['sign'], size=15, margin='0')}
       </td></tr>
 """

@@ -11,8 +11,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from common import (  # noqa: E402
-    BRAND, FONT, INK, LINE, OPS, SOFT, SURFACE, TINT,
-    button, eyebrow, full_image, h2, img, linker, page, para, stats_row, whatsapp, write,
+    BRAND, FONT, OPS, SOFT, SURFACE,
+    button, callout, card, eyebrow, full_image, h2, hero, img, lead, linker, page, para,
+    section_header, stats_strip, whatsapp, write,
 )
 
 link = linker("plan-2027")
@@ -30,6 +31,7 @@ COPY = {
         "title": "Your 2027, month by month",
         "preheader": "Showcase in February, trials in March, Summer Camp in June: the dates that decide a college roster spot in 2028.",
         "label": "Plan 2027",
+        "kickers": {"calendar": "The year ahead", "calendar_title": "Four dates to plan around", "proof": "Since 2015", "parents": "Not sure which one fits?"},
         "alt_hero": "The Eture FC squad arm in arm in the changing room before a match",
         "eyebrow": "New year · Plan 2027",
         "headline": "Your 2027, month by month",
@@ -52,7 +54,7 @@ COPY = {
         },
         "showcase_note": "The Showcase is not an open trial: it's for players already in the Eture system.",
         "proof": [(OPS["d1_players"], "Division I players since 2015"), (OPS["playing_now"], "playing in college right now"), (OPS["universities"], "U.S. universities")],
-        "parents_title": "Not sure where your player fits?",
+        "parents_title": "Talk to our admissions team",
         "parents_text": "Tell us their age, level and goals, and we'll tell you honestly which of these dates makes sense &mdash; or if it's better to wait.",
         "call": "Book a call",
         "whatsapp": "Message us on WhatsApp",
@@ -64,6 +66,7 @@ COPY = {
         "title": "Tu 2027, mes a mes",
         "preheader": "Showcase en febrero, pruebas en marzo, Summer Camp en junio: las fechas que deciden una plaza universitaria en 2028.",
         "label": "Planifica 2027",
+        "kickers": {"calendar": "El año que viene", "calendar_title": "Cuatro fechas para planificar", "proof": "Desde 2015", "parents": "¿No sabéis cuál encaja?"},
         "alt_hero": "La plantilla del Eture FC abrazada en el vestuario antes de un partido",
         "eyebrow": "Año nuevo · Planifica 2027",
         "headline": "Tu 2027, mes a mes",
@@ -86,7 +89,7 @@ COPY = {
         },
         "showcase_note": "El Showcase no es una prueba abierta: es para jugadores que ya están dentro del sistema Eture.",
         "proof": [(OPS["d1_players"], "jugadores en Division I desde 2015"), (OPS["playing_now"], "jugando en la universidad ahora mismo"), (OPS["universities"], "universidades de EE.&nbsp;UU.")],
-        "parents_title": "¿No sabéis dónde encaja vuestro jugador?",
+        "parents_title": "Habla con nuestro equipo de admisiones",
         "parents_text": "Contadnos su edad, su nivel y sus objetivos, y os diremos con honestidad cuál de estas fechas tiene sentido &mdash; o si es mejor esperar.",
         "call": "Reservar llamada",
         "whatsapp": "Escríbenos por WhatsApp",
@@ -100,67 +103,51 @@ COPY = {
 def build(lang, c):
     call = link("/lp/book-a-call?for=programs", lang)
     wa = whatsapp(c["whatsapp_text"])
+    k = c["kickers"]
 
     timeline = ""
-    for i, (key, path_en, path_es) in enumerate(EVENTS):
+    for key, path_en, path_es in EVENTS:
         when, title, text, cta = c["events"][key]
         href = link(path_en if lang == "en" else path_es, lang)
-        note = (
-            f'<p style="margin:0 0 12px;font-family:{FONT};font-size:12px;line-height:17px;color:{SOFT};font-style:italic;">{c["showcase_note"]}</p>'
-            if key == "showcase" else ""
+        note = lead(c["showcase_note"], size=12, margin="0 0 12px") if key == "showcase" else ""
+        inner = (
+            eyebrow(when)
+            + h2(title, BRAND, 22)
+            + lead(text, margin="0 0 12px")
+            + note
+            + f'<a href="{href}" target="_blank" style="font-family:{FONT};font-size:14px;line-height:20px;font-weight:500;color:{BRAND};text-decoration:none;">{cta} &rarr;</a>'
         )
-        last = i == len(EVENTS) - 1
-        timeline += f"""<tr>
-          <td width="18" valign="top" style="padding:4px 0 0;">
-            <div style="width:14px;height:14px;border-radius:7px;background:{BRAND};"></div>
-          </td>
-          <td valign="top" style="padding:0 0 {'0' if last else '26px'} 14px;">
-            <p style="margin:0 0 4px;font-family:{FONT};font-size:12px;line-height:16px;font-weight:700;letter-spacing:.06em;color:{BRAND};">{when}</p>
-            <p style="margin:0 0 6px;font-family:{FONT};font-size:18px;line-height:24px;font-weight:700;color:{INK};">{title}</p>
-            <p style="margin:0 0 12px;font-family:{FONT};font-size:14px;line-height:21px;color:{INK};">{text}</p>
-            {note}
-            <a href="{href}" target="_blank" style="font-family:{FONT};font-size:14px;line-height:20px;font-weight:600;color:{BRAND};text-decoration:none;">{cta} &rarr;</a>
-          </td>
-        </tr>"""
+        timeline += f'<tr><td style="padding:0 0 12px;">{card(inner, "#ffffff", "24px 24px 22px")}</td></tr>'
 
     body = f"""
       <!-- Hero -->
       <tr><td style="padding:0;line-height:0;font-size:0;">
         {full_image(img('/images/methodology/me-01-character.jpg'), c['alt_hero'], link('/lp/programs', lang))}
       </td></tr>
-      <tr><td class="px" bgcolor="{INK}" style="background:{INK};padding:32px 32px 30px;">
-        {eyebrow(c['eyebrow'], '#ff8a8f')}
-        <h1 class="h1" style="margin:0 0 12px;font-family:{FONT};font-size:34px;line-height:40px;font-weight:700;color:#ffffff;">{c['headline']}</h1>
-        {para(c['sub'], '#d2d2d7', margin='0')}
-      </td></tr>
+      {hero(c['eyebrow'], c['headline'], c['sub'])}
 
       <!-- Intro -->
-      <tr><td class="px" style="padding:32px 32px 12px;">
+      <tr><td class="px" style="padding:34px 32px 18px;">
         {para(c['hello'])}
-        {para(c['intro'])}
+        {para(c['intro'], margin='0')}
       </td></tr>
 
       <!-- Calendario -->
-      <tr><td class="px" style="padding:12px 32px 30px;">
+      <tr><td class="px" bgcolor="{SURFACE}" style="background:{SURFACE};padding:36px 32px 24px;">
+        <div style="padding-bottom:22px;">{section_header(k['calendar'], k['calendar_title'])}</div>
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">{timeline}</table>
       </td></tr>
 
       <!-- Prueba social -->
-      <tr><td class="px" bgcolor="{SURFACE}" style="background:{SURFACE};padding:28px 26px 14px;">
-        {stats_row(c['proof'])}
+      <tr><td class="px" style="padding:36px 32px 10px;">
+        {stats_strip(c['proof'])}
       </td></tr>
 
-      <!-- Padres -->
-      <tr><td class="px" style="padding:30px 32px 10px;">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="{TINT}" style="background:{TINT};border-radius:16px;border-left:4px solid {BRAND};">
-          <tr><td style="padding:24px;">
-            {h2(c['parents_title'], size=19)}
-            {para(c['parents_text'], size=15, margin='0 0 18px')}
-            {button(call, c['call'])}{button(wa, c['whatsapp'], primary=False)}
-          </td></tr>
-        </table>
+      <!-- Admisiones -->
+      <tr><td class="px" style="padding:24px 20px 0;">
+        {callout(k['parents'], c['parents_title'], c['parents_text'], button(call, c['call'], variant='light') + button(wa, c['whatsapp'], variant='ghost'))}
       </td></tr>
-      <tr><td class="px" style="padding:24px 32px 32px;">
+      <tr><td class="px" style="padding:30px 32px 32px;">
         {para(c['sign'], size=15, margin='0')}
       </td></tr>
 """

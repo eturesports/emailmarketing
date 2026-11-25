@@ -12,8 +12,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
 from common import (  # noqa: E402
-    BRAND, FONT, INK, LINE, OPS, SOFT, SURFACE, TINT,
-    button, drive, eyebrow, full_image, h2, img, linker, page, para, stats_row, whatsapp, write,
+    BRAND, DISPLAY, FONT, INK, OPS, SOFT, SURFACE,
+    button, callout, card, display, drive, eyebrow, full_image, h2, hero, img, lead, linker, page, para,
+    section_header, stats_strip, whatsapp, write,
 )
 
 link = linker("spring-break-trials-2027")
@@ -31,6 +32,9 @@ COPY = {
         "title": "Spend spring break in Spain",
         "preheader": "One week with Eture FC: training, a showcase match and LaLiga. Three weeks in March, €1,600 all in.",
         "label": "Spring Break 2027",
+        "kickers": {"weeks": "March 2027", "week": "The week", "proof": "Since 2015", "final": "Limited spots"},
+        "final_title": "One week to find out",
+        "final_text": "Spots are limited in every week. Book yours now, or message us with any question first.",
         "alt_hero": "Both teams lining up at Mestalla under the floodlights",
         "eyebrow": "Eture Identification Trial · March 2027",
         "headline": "Spend spring break in Spain",
@@ -43,7 +47,7 @@ COPY = {
         ],
         "weeks_title": "Choose your week",
         "month": "March 2027",
-        "week_cta": "Book this week",
+        "week_cta": "Book",
         "price": "€1,600",
         "price_text": "per player, all in · flights excluded",
         "included_title": "What the week includes",
@@ -62,7 +66,7 @@ COPY = {
         "skip_title": "Can't make it in March?",
         "skip_text": "The trial is completely optional: it's not a requirement to apply to the Eture FC programs. You can apply directly.",
         "skip_cta": "Apply directly to Eture FC",
-        "whatsapp": "Questions? Message us on WhatsApp",
+        "whatsapp": "Message us on WhatsApp",
         "whatsapp_text": "Hi Eture Sports, I have a question about the Spring Break Identification Trial.",
         "sign": "See you in March,<br /><strong>The Eture Sports team</strong>",
         "footer": "Eture Sports · Vinaròs, Spain",
@@ -71,6 +75,9 @@ COPY = {
         "title": "Pasa tu spring break en España",
         "preheader": "Una semana con el Eture FC: entrenamientos, un partido showcase y LaLiga. Tres semanas en marzo, 1.600 € todo incluido.",
         "label": "Spring Break 2027",
+        "kickers": {"weeks": "Marzo 2027", "week": "La semana", "proof": "Desde 2015", "final": "Plazas limitadas"},
+        "final_title": "Una semana para comprobarlo",
+        "final_text": "Las plazas de cada semana son limitadas. Reserva la tuya ahora, o escríbenos antes con cualquier duda.",
         "alt_hero": "Los dos equipos alineados en Mestalla bajo los focos",
         "eyebrow": "Eture Identification Trial · Marzo 2027",
         "headline": "Pasa tu spring break en España",
@@ -83,7 +90,7 @@ COPY = {
         ],
         "weeks_title": "Elige tu semana",
         "month": "Marzo 2027",
-        "week_cta": "Reservar esta semana",
+        "week_cta": "Reservar",
         "price": "1.600 €",
         "price_text": "por jugador, todo incluido · vuelos aparte",
         "included_title": "Qué incluye la semana",
@@ -102,7 +109,7 @@ COPY = {
         "skip_title": "¿No puedes en marzo?",
         "skip_text": "La prueba es totalmente opcional: no es un requisito para solicitar los programas del Eture FC. Puedes solicitar directamente.",
         "skip_cta": "Solicitar directamente el Eture FC",
-        "whatsapp": "¿Dudas? Escríbenos por WhatsApp",
+        "whatsapp": "Escríbenos por WhatsApp",
         "whatsapp_text": "Hola Eture Sports, tengo una pregunta sobre el Spring Break Identification Trial.",
         "sign": "Nos vemos en marzo,<br /><strong>El equipo de Eture Sports</strong>",
         "footer": "Eture Sports · Vinaròs, España",
@@ -117,15 +124,11 @@ def build(lang, c):
     wa = whatsapp(c["whatsapp_text"])
     intro = "".join(para(p) for p in c["intro"])
 
+    k = c["kickers"]
+
     weeks = "".join(
         f"""<td class="stack" width="33%" valign="top" style="padding:0 5px;">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="background:#ffffff;border-radius:14px;border:1px solid {LINE};">
-            <tr><td align="center" style="padding:18px 10px 16px;text-align:center;font-family:{FONT};">
-              <div style="font-size:12px;line-height:16px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:{SOFT};">{c['month']}</div>
-              <div style="font-size:30px;line-height:36px;font-weight:700;color:{INK};padding:4px 0 10px;">{days}</div>
-              <a href="{link(trials_path + '?week=' + week, lang)}" target="_blank" style="display:inline-block;padding:9px 16px;border-radius:999px;background:{BRAND};color:#ffffff;font-size:13px;font-weight:600;line-height:16px;text-decoration:none;">{c['week_cta']}</a>
-            </td></tr>
-          </table>
+          {card(eyebrow(c['month'], SOFT, 'center') + display(days, BRAND, 36, align='center', margin='0 0 14px') + f'<div style="text-align:center;">{button(link(trials_path + "?week=" + week, lang), c["week_cta"])}</div>', '#ffffff', '22px 10px 14px')}
         </td>"""
         for days, week in WEEKS
     )
@@ -142,12 +145,19 @@ def build(lang, c):
     </tr></table>"""
 
     photos = "".join(
-        f"""<td width="50%" valign="top" style="padding:0 {'2px 0 0' if i == 0 else '0 0 2px'};">
-          <div class="crop2" style="height:178px;overflow:hidden;"><img src="{src}" width="300" alt="{alt}" style="display:block;width:100%;max-width:300px;height:auto;border:0;" /></div>
-          <p style="margin:0;padding:8px 6px 0;font-family:{FONT};font-size:11px;line-height:14px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:{BRAND};text-align:center;">{label}</p>
+        f"""<td width="50%" valign="top" style="padding:0 {'3px 0 0' if i == 0 else '0 0 3px'};">
+          <div class="crop2" style="height:178px;overflow:hidden;border-radius:{'16px 0 0 16px' if i == 0 else '0 16px 16px 0'};"><img src="{src}" width="300" alt="{alt}" style="display:block;width:100%;max-width:300px;height:auto;border:0;" /></div>
+          {eyebrow(label, BRAND, 'center').replace('margin:0 0 10px', 'margin:0;padding-top:10px')}
         </td>"""
         for i, (src, alt, label) in enumerate(zip(
             [TRIAL_PHOTO, img("/images/methodology/me-04-exposure-01.jpg", 640)], c["photo_alt"], c["photo_label"]))
+    )
+
+    price = (
+        display(c["price"], BRAND, 44, margin="0 0 2px")
+        + lead(c["price_text"], margin="0 0 20px")
+        + h2(c["included_title"], BRAND, 20)
+        + included
     )
 
     body = f"""
@@ -155,65 +165,47 @@ def build(lang, c):
       <tr><td style="padding:0;line-height:0;font-size:0;">
         {full_image(img('/images/laliga/ll-mestalla.jpg'), c['alt_hero'], trials)}
       </td></tr>
-      <tr><td class="px" bgcolor="{INK}" style="background:{INK};padding:32px 32px 30px;">
-        {eyebrow(c['eyebrow'], '#ff8a8f')}
-        <h1 class="h1" style="margin:0 0 12px;font-family:{FONT};font-size:34px;line-height:40px;font-weight:700;color:#ffffff;">{c['headline']}</h1>
-        {para(c['sub'], '#d2d2d7', margin='0 0 22px')}
-        {button(trials, c['cta'])}
-      </td></tr>
+      {hero(c['eyebrow'], c['headline'], c['sub'], button(trials, c['cta']))}
 
       <!-- Intro -->
-      <tr><td class="px" style="padding:32px 32px 8px;">
+      <tr><td class="px" style="padding:34px 32px 18px;">
         {para(c['hello'])}
         {intro}
       </td></tr>
 
       <!-- Semanas -->
-      <tr><td class="px" bgcolor="{SURFACE}" style="background:{SURFACE};padding:28px 27px 28px;">
-        <div style="padding:0 5px;">{h2(c['weeks_title'], size=20)}</div>
+      <tr><td class="px" bgcolor="{SURFACE}" style="background:{SURFACE};padding:36px 27px 32px;">
+        <div style="padding:0 5px 22px;">{section_header(k['weeks'], c['weeks_title'])}</div>
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>{weeks}</tr></table>
       </td></tr>
 
       <!-- Precio e incluido -->
-      <tr><td class="px" style="padding:30px 32px 10px;">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="{TINT}" style="background:{TINT};border-radius:16px;">
-          <tr><td style="padding:22px 24px 12px;">
-            <p style="margin:0;font-family:{FONT};font-size:34px;line-height:40px;font-weight:700;color:{BRAND};">{c['price']}</p>
-            {para(c['price_text'], SOFT, 14, '0 0 18px')}
-            {h2(c['included_title'], size=17)}
-            {included}
-          </td></tr>
-        </table>
+      <tr><td class="px" style="padding:36px 32px 12px;">
+        <div style="padding-bottom:22px;">{section_header(k['week'], c['included_title'])}</div>
+        {card(price.replace(h2(c['included_title'], BRAND, 20), ''), SURFACE, '26px 26px 16px')}
       </td></tr>
 
       <!-- Fotos -->
-      <tr><td class="px" style="padding:20px 32px 10px;">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="table-layout:fixed;border-radius:14px;overflow:hidden;"><tr>{photos}</tr></table>
+      <tr><td class="px" style="padding:12px 32px 10px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="table-layout:fixed;"><tr>{photos}</tr></table>
       </td></tr>
 
       <!-- Prueba social -->
-      <tr><td class="px" style="padding:24px 26px 8px;">
-        <div style="padding:0 6px;">{h2(c['proof_title'], size=20)}</div>
-        {stats_row(c['proof'])}
+      <tr><td class="px" style="padding:30px 32px 10px;">
+        <div style="padding-bottom:20px;">{section_header(k['proof'], c['proof_title'])}</div>
+        {stats_strip(c['proof'])}
       </td></tr>
 
       <!-- Sin prueba -->
-      <tr><td class="px" style="padding:6px 32px 8px;">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid {LINE};border-radius:16px;">
-          <tr><td style="padding:20px 22px;">
-            {h2(c['skip_title'], size=17)}
-            {para(c['skip_text'], SOFT, 14, '0 0 12px')}
-            <a href="{direct}" target="_blank" style="font-family:{FONT};font-size:14px;line-height:20px;font-weight:600;color:{BRAND};text-decoration:none;">{c['skip_cta']} &rarr;</a>
-          </td></tr>
-        </table>
+      <tr><td class="px" style="padding:22px 32px 8px;">
+        {card(h2(c['skip_title'], BRAND, 20) + lead(c['skip_text'], margin='0 0 12px') + f'<a href="{direct}" target="_blank" style="font-family:{FONT};font-size:14px;line-height:20px;font-weight:500;color:{BRAND};text-decoration:none;">{c["skip_cta"]} &rarr;</a>', SURFACE, '24px')}
       </td></tr>
 
       <!-- Cierre -->
-      <tr><td class="px" align="center" style="padding:28px 32px 4px;text-align:center;">
-        {button(trials, c['cta'])}
-        <p style="margin:10px 0 0;font-family:{FONT};font-size:14px;line-height:20px;"><a href="{wa}" target="_blank" style="color:#128C7E;font-weight:600;text-decoration:none;">{c['whatsapp']} &rarr;</a></p>
+      <tr><td class="px" style="padding:24px 20px 0;">
+        {callout(k['final'], c['final_title'], c['final_text'], button(trials, c['cta'], variant='light') + button(wa, c['whatsapp'], variant='ghost'))}
       </td></tr>
-      <tr><td class="px" style="padding:24px 32px 32px;">
+      <tr><td class="px" style="padding:30px 32px 32px;">
         {para(c['sign'], size=15, margin='0')}
       </td></tr>
 """

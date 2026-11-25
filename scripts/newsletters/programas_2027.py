@@ -5,29 +5,15 @@
 import sys
 from pathlib import Path
 
-OUT = Path(sys.argv[1]) if len(sys.argv) > 1 else Path(__file__).resolve().parents[2] / "prisma" / "templates"
-SITE = "https://www.eturesports.com"
-UTM = "utm_source=eture-mailer&utm_medium=email&utm_campaign=programs-2027"
+sys.path.insert(0, str(Path(__file__).resolve().parent))
 
+from common import (  # noqa: E402
+    BRAND, DISPLAY, DIVIDER, FAINT, FONT, INK, SEASONS, SOFT, SURFACE,
+    button, callout, card, display, drive, eyebrow, full_image, h2, hero, img, lead, linker, page, para,
+    season_chart, section_header, stats_strip, write,
+)
 
-def img(path, w=1200):
-    from urllib.parse import quote
-    return f"{SITE}/_next/image?url={quote(path, safe='')}&w={w}&q=75"
-
-
-def link(path, lang, anchor=""):
-    prefix = "/es" if lang == "es" else ""
-    sep = "&" if "?" in path else "?"
-    return f"{SITE}{prefix}{path}{sep}{UTM}{anchor}"
-
-
-INK = "#1d1d1f"
-SOFT = "#6e6e73"
-FAINT = "#86868b"
-LINE = "#e8e8ed"
-BRAND = "#9f1b20"
-TINT = "#fbf1f1"
-FONT = "'Poppins',Arial,Helvetica,sans-serif"
+link = linker("programs-2027")
 
 # Formulario de solicitud de cada programa, en el mismo orden que PROGRAM_IMAGES.
 # El College Transfer no tiene página en /application: su solicitud es el
@@ -49,11 +35,6 @@ APPLY_PATHS = {
     ],
 }
 APPLY_ALL = {"en": "/application", "es": "/solicitud"}
-
-def drive(file_id, w=1200):
-    """Foto de Google Drive compartida con enlace público, servida redimensionada."""
-    return f"https://lh3.googleusercontent.com/d/{file_id}=w{w}"
-
 
 # Fotos de cada programa. Cada entrada es una lista de (url, clave de texto):
 # una foto ocupa toda la tarjeta, dos van en mitades y tres en columnas.
@@ -113,6 +94,8 @@ COPY = {
         ],
         "apply": "Apply now",
         "call": "Book a call",
+        "kickers": {"which": "Your stage", "parents": "A note for parents", "toros": "Since 2015", "final": "Next step"},
+        "parents_heading": "Talk to our admissions team",
         "which_title": "Not sure which one fits?",
         "which": [
             ("In high school, 9th–11th grade", "Start with the <strong>ID Summer Camp</strong>, or the <strong>High School Program</strong> for a full school year."),
@@ -209,6 +192,8 @@ COPY = {
         ],
         "apply": "Solicitar plaza",
         "call": "Reservar llamada",
+        "kickers": {"which": "Tu etapa", "parents": "Unas líneas para los padres", "toros": "Desde 2015", "final": "Siguiente paso"},
+        "parents_heading": "Habla con nuestro equipo de admisiones",
         "which_title": "¿No sabéis cuál encaja?",
         "which": [
             ("En el instituto, 9th–11th grade", "Empieza por el <strong>ID Summer Camp</strong>, o el <strong>High School Program</strong> para un curso completo."),
@@ -285,34 +270,12 @@ JADEN_IMAGES = [
 ]
 JADEN_ANCHOR = "#jaden-dubon-8946"
 
-# Colocaciones por temporada, de la base de operaciones de eturesports.com.
-SEASONS = [("15/16", 3), ("16/17", 1), ("17/18", 18), ("18/19", 28), ("19/20", 45), ("20/21", 41),
-           ("21/22", 103), ("22/23", 109), ("23/24", 109), ("24/25", 153), ("25/26", 180)]
-
-
-def button(href, label, primary=True):
-    bg = BRAND if primary else "#ffffff"
-    fg = "#ffffff" if primary else INK
-    border = BRAND if primary else "#c7c7cc"
-    return f"""<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="display:inline-table;margin:0 8px 8px 0;">
-  <tr><td align="center" bgcolor="{bg}" style="border-radius:999px;border:1px solid {border};">
-    <a href="{href}" target="_blank" style="display:inline-block;padding:12px 22px;font-family:{FONT};font-size:14px;font-weight:600;line-height:18px;color:{fg};text-decoration:none;border-radius:999px;">{label}</a>
-  </td></tr>
-</table>"""
-
 
 def build(c):
     lang = c["lang"]
     call = link("/lp/book-a-call?for=programs", lang)
     apply_all = link(APPLY_ALL[lang], lang)
-
-    stats = "".join(
-        f"""<td class="stack" width="25%" valign="top" style="padding:0 6px 16px;text-align:center;">
-          <div style="font-family:{FONT};font-size:28px;line-height:32px;font-weight:700;color:{BRAND};">{n}</div>
-          <div style="font-family:{FONT};font-size:12px;line-height:17px;color:{SOFT};padding-top:4px;">{label}</div>
-        </td>"""
-        for n, label in c["stats"]
-    )
+    k = c["kickers"]
 
     def media_block(items, href):
         texts = c["media"]
@@ -320,61 +283,62 @@ def build(c):
             url, key = items[0]
             label, alt = texts[key]
             caption = (
-                f"""<tr><td style="padding:10px 24px 0;font-family:{FONT};font-size:12px;line-height:17px;color:{SOFT};">{label}</td></tr>"""
+                f"""<tr><td style="padding:12px 24px 0;font-family:{FONT};font-size:12px;line-height:17px;color:{FAINT};">{label}</td></tr>"""
                 if label else ""
             )
             return f"""<tr><td style="padding:0;line-height:0;font-size:0;">
-            <a href="{href}" target="_blank"><img src="{url}" width="534" alt="{alt}" style="display:block;width:100%;max-width:534px;height:auto;border:0;border-radius:16px 16px 0 0;" /></a>
+            <a href="{href}" target="_blank"><img src="{url}" width="536" alt="{alt}" style="display:block;width:100%;max-width:536px;height:auto;border:0;border-radius:24px 24px 0 0;" /></a>
           </td></tr>{caption}"""
         n = len(items)
         gap = 4
         # Las fotos de tres columnas no comparten proporción: se recortan a 4:5
         # para que queden alineadas (Outlook ignora el recorte y las muestra enteras).
-        crop_open = f'<div class="crop3" style="height:{round(534 / n * 1.25)}px;overflow:hidden;">' if n == 3 else ""
+        crop_open = f'<div class="crop3" style="height:{round(536 / n * 1.25)}px;overflow:hidden;">' if n == 3 else ""
         crop_close = "</div>" if n == 3 else ""
         cells = ""
-        for k, (url, key) in enumerate(items):
+        for i, (url, key) in enumerate(items):
             label, alt = texts[key]
-            left = 0 if k == 0 else gap // 2
-            right = 0 if k == n - 1 else gap // 2
-            arrow = "" if k == n - 1 or n < 3 else " &rarr;"
+            left = 0 if i == 0 else gap // 2
+            right = 0 if i == n - 1 else gap // 2
+            arrow = "" if i == n - 1 or n < 3 else " &rarr;"
+            radius = "24px 0 0 0" if i == 0 else ("0 24px 0 0" if i == n - 1 else "0")
             cells += f"""<td width="{round(100 / n)}%" valign="top" style="padding:0 {right}px 0 {left}px;">
-              <a href="{href}" target="_blank" style="text-decoration:none;">{crop_open}<img src="{url}" width="{534 // n}" alt="{alt}" style="display:block;width:100%;max-width:{534 // n}px;height:auto;border:0;" />{crop_close}</a>
-              <p style="margin:0;padding:8px 6px 0;font-family:{FONT};font-size:11px;line-height:14px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:{BRAND};text-align:center;">{label}{arrow}</p>
+              <a href="{href}" target="_blank" style="text-decoration:none;"><div style="border-radius:{radius};overflow:hidden;">{crop_open}<img src="{url}" width="{536 // n}" alt="{alt}" style="display:block;width:100%;max-width:{536 // n}px;height:auto;border:0;" />{crop_close}</div></a>
+              {eyebrow(label + arrow, BRAND, 'center').replace('margin:0 0 10px', 'margin:0;padding-top:10px')}
             </td>"""
-        return f"""<tr><td style="padding:0;border-radius:16px 16px 0 0;overflow:hidden;">
+        return f"""<tr><td style="padding:0;">
             <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="table-layout:fixed;"><tr>{cells}</tr></table>
           </td></tr>"""
 
     programs = ""
-    for i, ((eyebrow, name, desc, detail), media, (apply_path, apply_anchor)) in enumerate(
+    for i, ((kicker, name, desc, detail), media, (apply_path, apply_anchor)) in enumerate(
         zip(c["programs"], PROGRAM_MEDIA, APPLY_PATHS[lang]), start=1
     ):
         apply_url = link(apply_path, lang, apply_anchor)
-        is_transfer = len(media) == 3
         story = (
-            f"""<p style="margin:0 0 16px;padding:12px 14px;background:{TINT};border-radius:10px;font-family:{FONT};font-size:13px;line-height:20px;color:{INK};">{c['shane']} <a href="{link(c['ops']['path'], lang, SHANE_ANCHOR)}" target="_blank" style="color:{BRAND};font-weight:600;white-space:nowrap;">{c['shane_cta']} &rarr;</a></p>"""
-            if is_transfer else ""
+            lead(f"""{c['shane']} <a href="{link(c['ops']['path'], lang, SHANE_ANCHOR)}" target="_blank" style="color:{BRAND};font-weight:500;text-decoration:none;white-space:nowrap;">{c['shane_cta']} &rarr;</a>""", size=14, margin="0 0 18px")
+            if len(media) == 3 else ""
         )
         programs += f"""
-      <tr><td style="padding:0 32px 28px;" class="px">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid {LINE};border-radius:16px;overflow:hidden;">
+      <tr><td style="padding:0 32px 20px;" class="px">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#ffffff" style="background:#ffffff;border-radius:24px;">
           {media_block(media, apply_url)}
-          <tr><td style="padding:22px 24px 16px;">
-            <p style="margin:0 0 6px;font-family:{FONT};font-size:12px;line-height:16px;font-weight:600;letter-spacing:.04em;color:{BRAND};text-transform:uppercase;">0{i} / 05 · {eyebrow}</p>
-            <h3 style="margin:0 0 8px;font-family:{FONT};font-size:21px;line-height:27px;font-weight:700;color:{INK};">{name}</h3>
-            <p style="margin:0 0 12px;font-family:{FONT};font-size:15px;line-height:23px;color:{INK};">{desc}</p>
-            <p style="margin:0 0 18px;font-family:{FONT};font-size:13px;line-height:19px;color:{SOFT};">{detail}</p>
+          <tr><td style="padding:24px 24px 18px;">
+            {eyebrow(f'0{i} / 05 · {kicker}')}
+            {display(name, BRAND, 24, upper=False, margin='0 0 10px', tag='h3')}
+            {lead(desc, margin='0 0 10px')}
+            {lead(detail, FAINT, 12, margin='0 0 18px')}
             {story}
-            {button(apply_url, c['apply'])}{button(call, c['call'], primary=False)}
+            <div style="margin-left:-4px;">{button(apply_url, c['apply'])}{button(call, c['call'], variant='secondary')}</div>
           </td></tr>
         </table>
       </td></tr>"""
 
     which = "".join(
         f"""<tr>
-          <td valign="top" style="padding:10px 0;border-top:1px solid {LINE};font-family:{FONT};font-size:14px;line-height:21px;color:{INK};">
-            <strong style="color:{BRAND};">{who}</strong><br />{what}
+          <td valign="top" style="padding:14px 0;border-top:1px solid {DIVIDER};">
+            {h2(who, BRAND, 18).replace('margin:0 0 14px', 'margin:0 0 4px')}
+            {lead(what, margin='0')}
           </td>
         </tr>"""
         for who, what in c["which"]
@@ -385,15 +349,15 @@ def build(c):
     toros = ""
     for row in (TOROS[:4], TOROS[4:]):
         cells = "".join(
-            f"""<td class="quarter" width="25%" valign="top" style="padding:0 5px 12px;">
+            f"""<td width="25%" valign="top" style="padding:0 5px 12px;">
               <a href="{ops_link}" target="_blank" style="text-decoration:none;color:{INK};">
-              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#ffffff;border-radius:12px;overflow:hidden;">
+              <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#ffffff;border-radius:16px;overflow:hidden;">
                 <tr><td style="padding:0;line-height:0;font-size:0;">
-                  <img src="{img('/images/toros/' + slug + '.jpg', 384)}" width="126" alt="{n}, {u}" style="display:block;width:100%;max-width:126px;height:auto;border:0;border-radius:12px 12px 0 0;" />
+                  <img src="{img('/images/toros/' + slug + '.jpg', 384)}" width="126" alt="{n}, {u}" style="display:block;width:100%;max-width:126px;height:auto;border:0;border-radius:16px 16px 0 0;" />
                 </td></tr>
-                <tr><td class="tcell" style="padding:9px 10px 11px;font-family:{FONT};">
-                  <div class="tname" style="font-size:13px;line-height:17px;font-weight:600;color:{INK};">{n}</div>
-                  <div class="tmeta" style="font-size:11px;line-height:16px;color:{SOFT};">{u}<br />{s}</div>
+                <tr><td class="tcell" style="padding:10px 10px 12px;">
+                  <div class="tname" style="font-family:{DISPLAY};font-size:14px;line-height:17px;font-weight:700;letter-spacing:-.02em;color:{INK};">{n}</div>
+                  <div class="tmeta" style="font-family:{FONT};font-size:11px;line-height:16px;color:{SOFT};padding-top:2px;">{u}<br />{s}</div>
                 </td></tr>
               </table></a>
             </td>"""
@@ -406,199 +370,99 @@ def build(c):
     jaden_steps = ""
     for (when, club, note, alt), path in zip(j["steps"], JADEN_IMAGES):
         jaden_steps += f"""<tr>
-          <td class="stack" width="200" valign="top" style="padding:0 0 18px;line-height:0;font-size:0;">
-            <img src="{img(path, 640)}" width="200" alt="{alt}" class="fluid" style="display:block;width:100%;max-width:200px;height:auto;border:0;border-radius:12px;" />
+          <td class="stack" width="200" valign="top" style="padding:0 0 20px;line-height:0;font-size:0;">
+            <img src="{img(path, 640)}" width="200" alt="{alt}" class="fluid" style="display:block;width:100%;max-width:200px;height:auto;border:0;border-radius:16px;" />
           </td>
-          <td class="stack" valign="top" style="padding:0 0 18px 18px;font-family:{FONT};">
-            <p style="margin:0 0 4px;font-size:12px;line-height:16px;font-weight:600;letter-spacing:.04em;text-transform:uppercase;color:#ff8a8f;">{when}</p>
-            <p style="margin:0 0 6px;font-size:17px;line-height:22px;font-weight:700;color:#ffffff;">{club}</p>
-            <p style="margin:0;font-size:14px;line-height:21px;color:#d2d2d7;">{note}</p>
+          <td class="stack" valign="top" style="padding:0 0 20px 18px;">
+            {eyebrow(when, '#ff8a8f').replace('margin:0 0 10px', 'margin:0 0 6px')}
+            {display(club, '#ffffff', 20, upper=False, margin='0 0 6px')}
+            {lead(note, '#d2d2d7', 14, margin='0')}
           </td>
         </tr>"""
     jaden_link = ops_link + JADEN_ANCHOR
 
     o = c["ops"]
-    ops_stats = "".join(
-        f"""<td class="half" width="25%" valign="top" style="padding:0 6px 16px;text-align:center;">
-          <div style="font-family:{FONT};font-size:26px;line-height:30px;font-weight:700;color:#ffffff;">{n}</div>
-          <div style="font-family:{FONT};font-size:12px;line-height:17px;color:#d2d2d7;padding-top:2px;">{label}</div>
-        </td>"""
-        for n, label in o["stats"]
-    )
-    peak = max(v for _, v in SEASONS)
-    bars = "".join(
-        f"""<td valign="bottom" align="center" style="padding:0 2px;font-family:{FONT};">
-          <div style="font-size:10px;line-height:12px;color:#d2d2d7;padding-bottom:3px;">{v}</div>
-          <div style="height:{max(3, round(v / peak * 110))}px;line-height:1px;font-size:1px;background:{'#c0272d' if season == '25/26' else '#6b1215'};border-radius:4px 4px 0 0;">&nbsp;</div>
-        </td>"""
-        for season, v in SEASONS
-    )
-    bar_labels = "".join(
-        f'<td class="blabel" align="center" style="padding:6px 0 0;font-family:{FONT};font-size:9px;line-height:11px;color:{FAINT};">{season}</td>'
-        for season, _ in SEASONS
-    )
-
     whatsapp = f"https://wa.me/15554437440?text={c['whatsapp_text']}"
-    intro = "".join(
-        f'<p style="margin:0 0 16px;font-family:{FONT};font-size:16px;line-height:25px;color:{INK};">{p}</p>'
-        for p in c["intro"]
-    )
+    intro = "".join(para(p) for p in c["intro"])
 
-    return f"""<!doctype html>
-<html lang="{lang}" xmlns="http://www.w3.org/1999/xhtml">
-<head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<meta name="x-apple-disable-message-reformatting" />
-<meta name="color-scheme" content="light only" />
-<title>{c['title']}</title>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;600;700&display=swap" rel="stylesheet" />
-<style>
-  body {{ margin:0; padding:0; background:#f5f5f7; }}
-  a {{ color:{BRAND}; }}
-  @media (max-width:620px) {{
-    .container {{ width:100% !important; border-radius:0 !important; }}
-    .px {{ padding-left:20px !important; padding-right:20px !important; }}
-    .stack {{ display:block !important; width:100% !important; box-sizing:border-box; }}
-    td.stack + td.stack {{ padding-left:0 !important; }}
-    .tname {{ font-size:11px !important; line-height:14px !important; }}
-    .tmeta {{ font-size:9px !important; line-height:13px !important; }}
-    .tcell {{ padding:8px 5px 10px !important; }}
-    .crop3 {{ height:144px !important; }}
-    .blabel {{ font-size:7px !important; letter-spacing:-.02em; }}
-    .fluid {{ max-width:100% !important; }}
-    .half {{ display:inline-block !important; width:50% !important; box-sizing:border-box; }}
-    .h1 {{ font-size:28px !important; line-height:34px !important; }}
-  }}
-</style>
-</head>
-<body style="margin:0;padding:0;background:#f5f5f7;">
-<div style="display:none;max-height:0;overflow:hidden;opacity:0;mso-hide:all;">{c['preheader']}&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;&#847;&zwnj;&nbsp;</div>
-<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#f5f5f7" style="background:#f5f5f7;">
-  <tr><td align="center" style="padding:24px 0;">
-    <table role="presentation" class="container" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px;max-width:600px;background:#ffffff;border-radius:20px;overflow:hidden;">
-
-      <!-- Cabecera -->
-      <tr><td class="px" style="padding:22px 32px;">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
-          <td valign="middle"><a href="{link('/', lang)}" target="_blank" style="text-decoration:none;"><img src="{SITE}/icon.png" width="36" height="36" alt="{c['alt_logo']}" style="display:inline-block;vertical-align:middle;border:0;border-radius:8px;" /><span style="display:inline-block;vertical-align:middle;padding-left:10px;font-family:{FONT};font-size:17px;font-weight:700;color:{INK};">Eture Sports</span></a></td>
-          <td align="right" valign="middle" style="font-family:{FONT};font-size:12px;color:{FAINT};">{c['view']}</td>
-        </tr></table>
-      </td></tr>
-
+    body = f"""
       <!-- Hero -->
       <tr><td style="padding:0;line-height:0;font-size:0;">
-        <a href="{apply_all}" target="_blank"><img src="{img('/images/heroes/trials-wide-1280.jpg')}" width="600" alt="{c['alt_hero']}" style="display:block;width:100%;max-width:600px;height:auto;border:0;" /></a>
+        {full_image(img('/images/heroes/trials-wide-1280.jpg'), c['alt_hero'], apply_all)}
       </td></tr>
-      <tr><td class="px" bgcolor="{INK}" style="background:{INK};padding:32px 32px 34px;">
-        <p style="margin:0 0 10px;font-family:{FONT};font-size:12px;line-height:16px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#ff8a8f;">{c['eyebrow']}</p>
-        <h1 class="h1" style="margin:0 0 12px;font-family:{FONT};font-size:32px;line-height:38px;font-weight:700;color:#ffffff;">{c['headline']}</h1>
-        <p style="margin:0 0 22px;font-family:{FONT};font-size:16px;line-height:24px;color:#d2d2d7;">{c['sub']}</p>
-        {button(apply_all, c['apply'])}
-      </td></tr>
+      {hero(c['eyebrow'], c['headline'], c['sub'], button(apply_all, c['apply']))}
 
       <!-- Intro -->
-      <tr><td class="px" style="padding:32px 32px 8px;">
-        <p style="margin:0 0 16px;font-family:{FONT};font-size:16px;line-height:25px;color:{INK};">{c['hello']}</p>
+      <tr><td class="px" style="padding:34px 32px 10px;">
+        {para(c['hello'])}
         {intro}
       </td></tr>
 
       <!-- Cifras -->
-      <tr><td class="px" style="padding:8px 26px 16px;">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border-top:1px solid {LINE};border-bottom:1px solid {LINE};">
-          <tr><td style="padding:22px 0 6px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>{stats}</tr></table></td></tr>
-        </table>
+      <tr><td class="px" style="padding:6px 32px 36px;">
+        {stats_strip(c['stats'])}
       </td></tr>
 
       <!-- Programas -->
-      <tr><td class="px" style="padding:24px 32px 22px;">
-        <p style="margin:0 0 4px;font-family:{FONT};font-size:12px;line-height:16px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:{BRAND};">{c['section']}</p>
-        <h2 style="margin:0;font-family:{FONT};font-size:24px;line-height:30px;font-weight:700;color:{INK};">{c['section_sub']}</h2>
+      <tr><td class="px" bgcolor="{SURFACE}" style="background:{SURFACE};padding:38px 32px 22px;">
+        {section_header(c['section'], c['section_sub'])}
       </td></tr>
-      {programs}
+      <tr><td bgcolor="{SURFACE}" style="background:{SURFACE};padding:0 0 18px;">
+        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">{programs}</table>
+      </td></tr>
 
       <!-- Cuál encaja -->
-      <tr><td class="px" style="padding:4px 32px 28px;">
-        <h2 style="margin:0 0 12px;font-family:{FONT};font-size:20px;line-height:26px;font-weight:700;color:{INK};">{c['which_title']}</h2>
+      <tr><td class="px" style="padding:38px 32px 30px;">
+        <div style="padding-bottom:18px;">{section_header(k['which'], c['which_title'])}</div>
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">{which}</table>
       </td></tr>
 
       <!-- Padres -->
-      <tr><td class="px" style="padding:0 32px 32px;">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="{TINT}" style="background:{TINT};border-radius:16px;border-left:4px solid {BRAND};">
-          <tr><td style="padding:24px;">
-            <h2 style="margin:0 0 10px;font-family:{FONT};font-size:19px;line-height:25px;font-weight:700;color:{INK};">{c['parents_title']}</h2>
-            <p style="margin:0 0 18px;font-family:{FONT};font-size:15px;line-height:23px;color:{INK};">{c['parents']}</p>
-            {button(call, c['parents_cta'])}
-          </td></tr>
-        </table>
+      <tr><td class="px" style="padding:0 20px 36px;">
+        {callout(k['parents'], c['parents_heading'], c['parents'], button(call, c['parents_cta'], variant='light') + button(whatsapp, c['whatsapp'], variant='ghost'))}
       </td></tr>
 
       <!-- Jaden Dubon -->
       <tr><td bgcolor="{INK}" style="background:{INK};padding:0;line-height:0;font-size:0;">
-        <a href="{jaden_link}" target="_blank"><img src="{img(JADEN_HERO)}" width="600" alt="{j['hero_alt']}" style="display:block;width:100%;max-width:600px;height:auto;border:0;" /></a>
+        {full_image(img(JADEN_HERO), j['hero_alt'], jaden_link)}
       </td></tr>
-      <tr><td class="px" bgcolor="{INK}" style="background:{INK};padding:34px 32px 16px;">
-        <p style="margin:0 0 8px;font-family:{FONT};font-size:12px;line-height:16px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#ff8a8f;">{j['eyebrow']}</p>
-        <h2 style="margin:0 0 12px;font-family:{FONT};font-size:24px;line-height:30px;font-weight:700;color:#ffffff;">{j['title']}</h2>
-        <p style="margin:0 0 24px;font-family:{FONT};font-size:15px;line-height:23px;color:#d2d2d7;">{j['lead']}</p>
+      <tr><td class="px" bgcolor="{INK}" style="background:{INK};padding:36px 32px 20px;">
+        <div style="padding-bottom:26px;">{section_header(j['eyebrow'], j['title'], j['lead'], dark=True, size=26)}</div>
         <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">{jaden_steps}</table>
-        <div style="padding:4px 0 20px;">{button(jaden_link, j['cta'])}</div>
+        <div style="padding:4px 0 18px;text-align:center;">{button(jaden_link, j['cta'])}</div>
       </td></tr>
 
       <!-- Toros -->
-      <tr><td class="px" bgcolor="#f5f5f7" style="background:#f5f5f7;padding:30px 27px 18px;">
-        <h2 style="margin:0 5px 4px;font-family:{FONT};font-size:20px;line-height:26px;font-weight:700;color:{INK};">{c['toros_title']}</h2>
-        <p style="margin:0 5px 16px;font-family:{FONT};font-size:14px;line-height:20px;color:{SOFT};">{c['toros_sub']}</p>
+      <tr><td class="px" bgcolor="{SURFACE}" style="background:{SURFACE};padding:38px 27px 24px;">
+        <div style="padding:0 5px 22px;">{section_header(k['toros'], c['toros_title'], c['toros_sub'])}</div>
         {toros}
       </td></tr>
 
       <!-- Operaciones -->
-      <tr><td class="px" style="padding:28px 20px 0;">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="{BRAND}" style="background:{BRAND};border-radius:20px;">
-          <tr><td style="padding:30px 24px 28px;">
-            <p style="margin:0 0 8px;font-family:{FONT};font-size:12px;line-height:16px;font-weight:600;letter-spacing:.06em;text-transform:uppercase;color:#ffd6d8;">{o['eyebrow']}</p>
-            <h2 style="margin:0 0 12px;font-family:{FONT};font-size:24px;line-height:30px;font-weight:700;color:#ffffff;">{o['title']}</h2>
-            <p style="margin:0 0 24px;font-family:{FONT};font-size:15px;line-height:23px;color:#fbe3e4;">{o['text']}</p>
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0"><tr>{ops_stats}</tr></table>
-            <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#1d1d1f" style="background:#1d1d1f;border-radius:14px;margin:8px 0 22px;">
-              <tr><td style="padding:16px 14px 12px;">
-                <p style="margin:0 0 12px;font-family:{FONT};font-size:12px;line-height:16px;color:#d2d2d7;">{o['chart']}</p>
-                <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="table-layout:fixed;">
-                  <tr style="height:130px;">{bars}</tr>
-                  <tr>{bar_labels}</tr>
-                </table>
-              </td></tr>
-            </table>
-            <table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr><td align="center" bgcolor="#ffffff" style="border-radius:999px;">
-              <a href="{ops_link}" target="_blank" style="display:inline-block;padding:13px 24px;font-family:{FONT};font-size:14px;font-weight:600;line-height:18px;color:{BRAND};text-decoration:none;border-radius:999px;">{o['cta']} &rarr;</a>
-            </td></tr></table>
-          </td></tr>
-        </table>
+      <tr><td class="px" style="padding:38px 32px 10px;">
+        {section_header(o['eyebrow'], o['title'], o['text'], size=26)}
+      </td></tr>
+      <tr><td class="px" style="padding:16px 32px 0;">
+        {stats_strip(o['stats'])}
+      </td></tr>
+      <tr><td class="px" style="padding:14px 32px 0;">
+        {season_chart(o['chart'])}
+      </td></tr>
+      <tr><td class="px" align="center" style="padding:22px 32px 36px;text-align:center;">
+        {button(ops_link, o['cta'] + ' &rarr;')}
       </td></tr>
 
       <!-- Cierre -->
-      <tr><td class="px" align="center" style="padding:36px 32px 12px;text-align:center;">
-        <h2 style="margin:0 0 10px;font-family:{FONT};font-size:24px;line-height:30px;font-weight:700;color:{INK};">{c['final_title']}</h2>
-        <p style="margin:0 0 22px;font-family:{FONT};font-size:15px;line-height:23px;color:{SOFT};">{c['final_text']}</p>
-        {button(apply_all, c['final_apply'])}{button(call, c['call'], primary=False)}
-        <p style="margin:14px 0 0;font-family:{FONT};font-size:14px;line-height:20px;"><a href="{whatsapp}" target="_blank" style="color:#128C7E;font-weight:600;text-decoration:none;">{c['whatsapp']} &rarr;</a></p>
+      <tr><td class="px" style="padding:0 20px;">
+        {callout(k['final'], c['final_title'], c['final_text'], button(apply_all, c['final_apply'], variant='light') + button(call, c['call'], variant='ghost'))}
       </td></tr>
-      <tr><td class="px" style="padding:24px 32px 32px;">
-        <p style="margin:0;font-family:{FONT};font-size:15px;line-height:23px;color:{INK};">{c['sign']}</p>
+      <tr><td class="px" style="padding:30px 32px 32px;">
+        {para(c['sign'], size=15, margin='0')}
       </td></tr>
-      <tr><td class="px" style="padding:18px 32px 24px;border-top:1px solid {LINE};text-align:center;font-family:{FONT};font-size:12px;line-height:18px;color:{FAINT};">
-        {c['footer']} · <a href="{link('/', lang)}" target="_blank" style="color:{FAINT};">eturesports.com</a>
-      </td></tr>
-    </table>
-  </td></tr>
-</table>
-</body>
-</html>
 """
+    return page(lang=lang, title=c["title"], preheader=c["preheader"], label=c["view"],
+                home=link("/", lang), body=body, footer=c["footer"])
 
 
-OUT.mkdir(parents=True, exist_ok=True)
-for key, c in COPY.items():
-    (OUT / f"programas-jugadores-padres.{key}.html").write_text(build(c), encoding="utf-8")
-    print("ok", key)
+if __name__ == "__main__":
+    write("programas-jugadores-padres", {lang: build(c) for lang, c in COPY.items()})
